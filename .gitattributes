@@ -1,0 +1,2 @@
+SynthesisSimilarity/other_rsc/** filter=lfs diff=lfs merge=lfs -text
+SynthesisSimilarity/rsc/** filter=lfs diff=lfs merge=lfs -text

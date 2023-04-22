@@ -113,15 +113,8 @@ venv.bak/
 out
 gen
 
-*/generated/*
-*/rsc/*
-*/ref/*
-*/scratch/*
-
-data_public
-cluster_tasks
-calculated_tasks
-analysis
-
-!*/generated/task_meta.json
-!*/rsc/used_paras_*
+SynthesisSimilarity/scripts_not_used
+SynthesisSimilarity/scripts_debug
+SynthesisSimilarity/scratch
+SynthesisSimilarity/rsc_preparation
+SynthesisSimilarity/generated
