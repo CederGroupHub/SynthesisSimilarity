@@ -164,14 +164,10 @@ def run_recommendations():
     )
 
     ########################
+    # recommendation through synthesis similarity
     all_pres_predict = recommend_w_SynSym(
-        # recommend_w_freq(
-        # all_pres_predict, val_targets_formulas = recommend_w_freq(
-        # recommend_w_FastText(
-        # recommend_w_SynSym(
         precursors_recommendator=precursors_recommendator,
         test_targets_formulas=val_targets_formulas,
-        # test_targets=val_targets,
         top_n=10,
     )
 
@@ -182,12 +178,8 @@ def run_recommendations():
     )
 
     all_pres_predict = recommend_w_SynSym(
-        # all_pres_predict, test_targets_formulas = recommend_w_FastText(
-        # recommend_w_freq(
-        # recommend_w_SynSym(
         precursors_recommendator=precursors_recommendator,
         test_targets_formulas=test_targets_formulas,
-        # test_targets=test_targets,
         top_n=10,
     )
 
@@ -198,6 +190,7 @@ def run_recommendations():
     )
 
     ########################
+    # recommendation through raw composition
     all_pres_predict = recommend_w_RawComp(
         precursors_recommendator=precursors_recommendator,
         test_targets_formulas=val_targets_formulas,
@@ -223,6 +216,7 @@ def run_recommendations():
     )
 
     ########################
+    # recommendation through similarity based on matminer representation
     all_pres_predict = recommend_w_MatMiner(
         precursors_recommendator=precursors_recommendator,
         test_targets_formulas=val_targets_formulas,
@@ -248,6 +242,7 @@ def run_recommendations():
     )
 
     ########################
+    # recommendation through similarity based on fasttext representation
     all_pres_predict, fasttext_supported_val_targets_formulas = recommend_w_FastText(
         precursors_recommendator=precursors_recommendator,
         test_targets_formulas=val_targets_formulas,
@@ -275,6 +270,7 @@ def run_recommendations():
     )
 
     ########################
+    # recommendation through product of precursor frequencies
     all_pres_predict = recommend_w_freq(
         precursors_recommendator=precursors_recommendator,
         test_targets_formulas=val_targets_formulas,
@@ -309,7 +305,6 @@ def recommend_w_SynSym(
         target_formula=test_targets_formulas,
         top_n=top_n,
         validate_first_attempt=False,
-        # validate_reaction=True,
         recommendation_strategy="SynSim_conditional",
     )
 
