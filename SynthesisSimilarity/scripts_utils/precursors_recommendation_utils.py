@@ -77,7 +77,7 @@ class PrecursorsRecommendation(object):
         self.featurizer_type = self.model_config["featurizer_type"]
         self.max_mats_num = self.model_config["max_mats_num"]
 
-        self.predict_precursor_callback = callbacks.PredictPrecursorsCallback_2(
+        self.predict_precursor_callback = callbacks.PredictPrecursorsCallback(
             all_elements=self.all_elements,
             # all_ions=all_ions,
             mat_feature_len=self.mat_feature_len,
@@ -744,17 +744,14 @@ if __name__ == "__main__":
     )
     print("-------Finished loading models for precursors prediction-------")
 
-    targets_formulas = "Li3NiMnCoO6"
-    # targets_formulas = [
-    #     'LiFePO4',
-    #     'LiNi0.333Mn0.333Co0.333O2',
-    # ]
+    targets_formulas = [
+        "LiFePO4",
+        "LiNi0.333Mn0.333Co0.333O2",
+    ]
     top_n = 10
-    all_pres_predict, all_rxns_predict = precursors_recommendator.recommend_precursors(
+    all_pres_predict = precursors_recommendator.recommend_precursors(
         target_formula=targets_formulas,
         top_n=top_n,
-        validate_first_attempt=True,
-        recommendation_strategy="SynSim_conditional",
     )
     print("all_pres_predict")
     pprint(all_pres_predict)

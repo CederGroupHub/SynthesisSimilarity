@@ -195,34 +195,3 @@ def MatMiner_features_for_formulas(
         )
     return all_features
 
-
-def example():
-    formula1s = ["MgCr2S4"]
-    formula2s = ["MgCr2O4", "MgV2S4", "MgS", "Cr2S3", "LiF", "TiO2"]
-    obj = MatminerSimilarity(
-        path_to_imputer="../other_rsc/matminer/mp_imputer_preset_v1.0.2.pkl",
-        path_to_scaler="../other_rsc/matminer/mp_scaler_preset_v1.0.2.pkl",
-    )
-    for formula1 in formula1s:
-        for formula2 in formula2s:
-            print("\nComparing %s to %s:" % (formula1, formula2))
-            print("Similarity = %.3f" % obj.compare(formula1, formula2))
-    return obj
-
-
-def main():
-    obj = example()
-    return obj
-
-
-if __name__ == "__main__":
-    obj = main()
-    # obj = RegenerateScalerImputer(
-    #     path_to_formulas='mp_formulas.json',
-    #     inputs={'features': 'magpie',
-    #             'data_source': 'magpie',
-    #             'stats': ['mean', 'std_dev'],
-    #             'path_to_scaler': 'mp_scaler_v1.0.2.pkl',
-    #             'path_to_imputer': 'mp_imputer_v1.0.2.pkl'}
-    # )
-    # obj.fit_imputer_and_scaler

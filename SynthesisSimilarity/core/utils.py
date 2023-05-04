@@ -20,70 +20,83 @@ from typing import List, Tuple, Union
 from ValenceSolver.core.composition_inhouse import CompositionInHouse
 
 
-__author__ = 'Tanjin He'
-__maintainer__ = 'Tanjin He'
-__email__ = 'tanjin_he@berkeley.edu'
+__author__ = "Tanjin He"
+__maintainer__ = "Tanjin He"
+__email__ = "tanjin_he@berkeley.edu"
 
 
 NEAR_ZERO = 1e-6
-allNonMetalElements = \
-    ['C', 'H', 'O', 'N', 'Cl', 'F', 'P', 'S', 'Br', 'I', 'Se'] \
-    + ['He', 'Ne', 'Ar', 'Kr', 'Xe', 'Rn', 'Og']
+allNonMetalElements = ["C", "H", "O", "N", "Cl", "F", "P", "S", "Br", "I", "Se"] + [
+    "He",
+    "Ne",
+    "Ar",
+    "Kr",
+    "Xe",
+    "Rn",
+    "Og",
+]
 valence_cache = {}
-pattern_prototype = regex.compile(r'(.*)/[^/]+<-.*|(.*)/NoDoping.*')
+pattern_prototype = regex.compile(r"(.*)/[^/]+<-.*|(.*)/NoDoping.*")
 
 
 def print_gpu_info():
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    logical_gpus = tf.config.experimental.list_logical_devices("GPU")
     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
 
 
 def allow_gpu_growth():
-    gpus = tf.config.experimental.list_physical_devices('GPU')
+    gpus = tf.config.experimental.list_physical_devices("GPU")
     if gpus:
         num_python_proc = 0
-        path = os.path.abspath('.')
-        tmp_m = re.match('.*TPSimilarity_([0-9]+).*', path)
+        path = os.path.abspath(".")
+        tmp_m = re.match(".*TPSimilarity_([0-9]+).*", path)
         if tmp_m:
             num_python_proc = int(tmp_m.group(1))
         else:
             for proc in psutil.process_iter():
-                if 'python' in proc.name():
+                if "python" in proc.name():
                     num_python_proc += 1
         try:
             # Currently, memory growth needs to be the same across GPUs
             gpu_to_use = gpus[num_python_proc % len(gpus)]
-            tf.config.experimental.set_visible_devices(gpu_to_use, 'GPU')
+            tf.config.experimental.set_visible_devices(gpu_to_use, "GPU")
             tf.config.experimental.set_memory_growth(gpu_to_use, True)
             # for gpu in gpus:
             #     tf.config.experimental.set_memory_growth(gpu, True)
-            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            logical_gpus = tf.config.experimental.list_logical_devices("GPU")
             print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
         except RuntimeError as e:
             # Memory growth must be set before GPUs have been initialized
             print(e)
 
-if os.environ.get('tf_allow_gpu_growth', 'False') != 'True':
+
+if os.environ.get("tf_allow_gpu_growth", "False") != "True":
     allow_gpu_growth()
-    os.environ['tf_allow_gpu_growth'] = 'True'
+    os.environ["tf_allow_gpu_growth"] = "True"
+
 
 class Unbuffered(object):
-   def __init__(self, stream):
-       self.stream = stream
-   def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
-   def writelines(self, datas):
-       self.stream.writelines(datas)
-       self.stream.flush()
-   def __getattr__(self, attr):
-       return getattr(self.stream, attr)
+    def __init__(self, stream):
+        self.stream = stream
+
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+
+    def writelines(self, datas):
+        self.stream.writelines(datas)
+        self.stream.flush()
+
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
+
 
 def use_file_as_stdout(file_path):
-    sys.stdout = open(file_path, 'w')
+    sys.stdout = open(file_path, "w")
     sys.stdout = Unbuffered(sys.stdout)
-    print('this is printed in the console')
+    print("this is printed in the console")
+
 
 def composition_to_array(composition, elements):
     """
@@ -92,11 +105,12 @@ def composition_to_array(composition, elements):
     :param elements: a list
     :return:
     """
-    comp_array = np.zeros((len(elements), ), dtype=np.float32)
+    comp_array = np.zeros((len(elements),), dtype=np.float32)
     for c, v in composition.items():
         comp_array[elements.index(c)] = v
     comp_array /= max(np.sum(comp_array), NEAR_ZERO)
     return comp_array
+
 
 def formula_to_array(formula, elements):
     """
@@ -108,14 +122,17 @@ def formula_to_array(formula, elements):
     comp = Composition(formula).as_dict()
     return composition_to_array(comp, elements)
 
+
 def array_to_composition(comp_array, elements):
-    composition = dict(filter(lambda x: x[1]>0, zip(elements, comp_array)))
+    composition = dict(filter(lambda x: x[1] > 0, zip(elements, comp_array)))
     return composition
+
 
 def array_to_formula(comp_array, elements):
     composition = array_to_composition(comp_array, elements)
     formula = dict_to_simple_formula(composition)
     return formula
+
 
 def get_composition_string(materials):
     """
@@ -124,11 +141,7 @@ def get_composition_string(materials):
     :return comp_str: (None, )
     """
     comp_str = tf.strings.as_string(materials, precision=6)
-    comp_str = tf.strings.reduce_join(
-        comp_str,
-        separator=' ',
-        axis=-1
-    )
+    comp_str = tf.strings.reduce_join(comp_str, separator=" ", axis=-1)
     return comp_str
 
 
@@ -137,46 +150,11 @@ def get_elements_in_formula(mat_str):
     return [str(ele) for ele in comp.elements]
 
 
-# def convert_mat_to_dico(all_compositions,
-#                         composition_shape,
-#                         count_weights=None,
-#                         num_reserved_ids=10,
-#                         least_count=5):
-#     """
-#     convert a list of composition dict to a dico used in the ReactionContext task
-#
-#     :param all_compositions:
-#     :return:
-#     """
-#     # goal
-#     mat_labels = []
-#     mat_compositions = []
-#     mat_counts = []
-#
-#
-#     all_mats_str = get_composition_string(np.array(all_compositions))
-#     all_mats_str = all_mats_str.numpy()
-#     mat_str_comp = {s: comp for (s, comp) in zip(all_mats_str, all_compositions) }
-#
-#     mat_labels, mat_counts = convert_list_to_dico(
-#         all_labels=all_mats_str,
-#         count_weights=count_weights,
-#         num_reserved_ids=num_reserved_ids,
-#         least_count=least_count,
-#     )
-#
-#     mat_compositions = [
-#         mat_str_comp.get(l, np.zeros(shape=composition_shape, dtype=np.float32))
-#         for l in mat_labels
-#     ]
-#
-#     return mat_labels, mat_compositions, mat_counts
-
 def convert_list_to_dico(
     all_labels: Union[List[str], List[bytes]],
     count_weights: Union[List[int], List[float]],
-    num_reserved_ids:int = 10,
-    least_count: int = 5
+    num_reserved_ids: int = 10,
+    least_count: int = 5,
 ):
     """
     convert a list of composition dict to a dico used in the ReactionContext task
@@ -189,7 +167,7 @@ def convert_list_to_dico(
     out_counts = []
 
     if count_weights is None:
-        count_weights = [1.0]*len(all_labels)
+        count_weights = [1.0] * len(all_labels)
     else:
         assert len(count_weights) == len(all_labels)
 
@@ -199,22 +177,25 @@ def convert_list_to_dico(
         w = count_weights[i]
         s = all_labels[i]
         if not isinstance(s, bytes):
-            s = bytes(s, encoding='utf-8')
+            s = bytes(s, encoding="utf-8")
         big_dico[s] += w
     big_dico = big_dico.most_common()
     big_dico = list(filter(lambda x: x[1] >= least_count, big_dico))
-    print('len(big_dico)', len(big_dico))
+    print("len(big_dico)", len(big_dico))
 
     if num_reserved_ids >= 2:
         # add some placeholder for flexible usage
-        placeholder = ['<PLACEHOLDER>_{}'.format(i) for i in range(num_reserved_ids)]
-        placeholder[0] = '<MASK>'
-        placeholder[1] = '<UNK>'
+        placeholder = ["<PLACEHOLDER>_{}".format(i) for i in range(num_reserved_ids)]
+        placeholder[0] = "<MASK>"
+        placeholder[1] = "<UNK>"
         for p in reversed(placeholder):
-            big_dico.insert(0, (
-                bytes(p, encoding='utf-8'),
+            big_dico.insert(
                 0,
-            ))
+                (
+                    bytes(p, encoding="utf-8"),
+                    0,
+                ),
+            )
 
     # convert big_dico to objects required by MultiTasksOnRecipes model
     out_labels = [x[0] for x in big_dico]
@@ -223,58 +204,55 @@ def convert_list_to_dico(
     return out_labels, out_counts
 
 
-def get_input_format(model_type='MultiTasksOnRecipes', max_mats_num=6):
+def get_input_format(model_type="MultiTasksOnRecipes", max_mats_num=6):
     data_type = None
     data_shape = None
     padded_data_shape = None
-    if model_type == 'MultiTasksOnRecipes':
+    if model_type == "MultiTasksOnRecipes":
         data_type = {
-            'reaction_1': tf.float32,
-            'reaction_2': tf.float32,
-            'reaction_1_featurized': tf.float32,
-            'reaction_2_featurized': tf.float32,
-            'precursors_1_conditional': tf.float32,
-            'precursors_2_conditional': tf.float32,
-            'temperature_1': tf.float32,
-            'temperature_2': tf.float32,
-            'synthesis_type_1': tf.string,
-            'synthesis_type_2': tf.string,
+            "reaction_1": tf.float32,
+            "reaction_2": tf.float32,
+            "reaction_1_featurized": tf.float32,
+            "reaction_2_featurized": tf.float32,
+            "precursors_1_conditional": tf.float32,
+            "precursors_2_conditional": tf.float32,
+            "temperature_1": tf.float32,
+            "temperature_2": tf.float32,
+            "synthesis_type_1": tf.string,
+            "synthesis_type_2": tf.string,
         }
 
         data_shape = {
-            'reaction_1': tf.TensorShape([None, None]),
-            'reaction_2': tf.TensorShape([None, None]),
-            'reaction_1_featurized': tf.TensorShape([None, None]),
-            'reaction_2_featurized': tf.TensorShape([None, None]),
-            'precursors_1_conditional': tf.TensorShape([None, None]),
-            'precursors_2_conditional': tf.TensorShape([None, None]),
-            'temperature_1': tf.TensorShape([]),
-            'temperature_2': tf.TensorShape([]),
-            'synthesis_type_1': tf.TensorShape([]),
-            'synthesis_type_2': tf.TensorShape([]),
+            "reaction_1": tf.TensorShape([None, None]),
+            "reaction_2": tf.TensorShape([None, None]),
+            "reaction_1_featurized": tf.TensorShape([None, None]),
+            "reaction_2_featurized": tf.TensorShape([None, None]),
+            "precursors_1_conditional": tf.TensorShape([None, None]),
+            "precursors_2_conditional": tf.TensorShape([None, None]),
+            "temperature_1": tf.TensorShape([]),
+            "temperature_2": tf.TensorShape([]),
+            "synthesis_type_1": tf.TensorShape([]),
+            "synthesis_type_2": tf.TensorShape([]),
         }
 
         padded_data_shape = {
-            'reaction_1': tf.TensorShape([max_mats_num, None]),
-            'reaction_2': tf.TensorShape([max_mats_num, None]),
-            'reaction_1_featurized': tf.TensorShape([max_mats_num, None]),
-            'reaction_2_featurized': tf.TensorShape([max_mats_num, None]),
-            'precursors_1_conditional': tf.TensorShape([max_mats_num-1, None]),
-            'precursors_2_conditional': tf.TensorShape([max_mats_num-1, None]),
-            'temperature_1': tf.TensorShape([]),
-            'temperature_2': tf.TensorShape([]),
-            'synthesis_type_1': tf.TensorShape([]),
-            'synthesis_type_2': tf.TensorShape([]),
+            "reaction_1": tf.TensorShape([max_mats_num, None]),
+            "reaction_2": tf.TensorShape([max_mats_num, None]),
+            "reaction_1_featurized": tf.TensorShape([max_mats_num, None]),
+            "reaction_2_featurized": tf.TensorShape([max_mats_num, None]),
+            "precursors_1_conditional": tf.TensorShape([max_mats_num - 1, None]),
+            "precursors_2_conditional": tf.TensorShape([max_mats_num - 1, None]),
+            "temperature_1": tf.TensorShape([]),
+            "temperature_2": tf.TensorShape([]),
+            "synthesis_type_1": tf.TensorShape([]),
+            "synthesis_type_2": tf.TensorShape([]),
         }
     return data_type, data_shape, padded_data_shape
 
 
-def dict_to_tf_dataset(data,
-                       data_type,
-                       data_shape,
-                       padded_shape=None,
-                       column_y=None,
-                       batch_size=1):
+def dict_to_tf_dataset(
+    data, data_type, data_shape, padded_shape=None, column_y=None, batch_size=1
+):
     """
 
     :param data: list of dict contain all different types of data,
@@ -291,7 +269,9 @@ def dict_to_tf_dataset(data,
     """
     features = set(data[0].keys()) & set(data_type.keys())
     if column_y:
-        features -= {column_y, }
+        features -= {
+            column_y,
+        }
     features_type = {k: data_type[k] for k in features}
     features_shape = {k: data_shape[k] for k in features}
     if padded_shape == None:
@@ -315,6 +295,7 @@ def dict_to_tf_dataset(data,
             assert column_y in d
             # print('generted y sample')
             yield d[column_y]
+
     # or use dataset.map
     # https://github.com/tensorflow/tensorflow/issues/28643
     dataset_x = tf.data.Dataset.from_generator(
@@ -330,34 +311,29 @@ def dict_to_tf_dataset(data,
         )
     else:
         dataset_y = tf.data.Dataset.from_tensor_slices(
-            np.zeros((len(data), ), dtype=np.float32)
+            np.zeros((len(data),), dtype=np.float32)
         )
 
     data_batch_x = dataset_x.padded_batch(
-        batch_size,
-        padded_shapes=padded_features_shape
+        batch_size, padded_shapes=padded_features_shape
     )
     if column_y:
         data_batch_y = dataset_y.padded_batch(
-            batch_size,
-            padded_shapes=padded_features_shape[column_y]
+            batch_size, padded_shapes=padded_features_shape[column_y]
         )
     else:
-        data_batch_y = dataset_y.padded_batch(
-            batch_size,
-            padded_shapes=[]
-        )
+        data_batch_y = dataset_y.padded_batch(batch_size, padded_shapes=[])
     return data_batch_x, data_batch_y
 
 
-def split_reactions(reactions,
-                    val_frac=0.1,
-                    test_frac=0.1,
-                    keys=('raw_index', ),
-                    random_seed=None,
-                    by_year=False,
-                    ):
-
+def split_reactions(
+    reactions,
+    val_frac=0.1,
+    test_frac=0.1,
+    keys=("raw_index",),
+    random_seed=None,
+    by_year=False,
+):
     def default_key_exists(key_default: Union[str, int], key_records):
         if key_default in key_records:
             return True
@@ -415,14 +391,14 @@ def split_reactions(reactions,
             prototype_records.add(prototype)
 
     func_key_exists = {
-        'default': default_key_exists,
-        'target_comp': composition_exists,
-        'prototype_path': prototype_exists,
+        "default": default_key_exists,
+        "target_comp": composition_exists,
+        "prototype_path": prototype_exists,
     }
     func_key_save = {
-        'default': default_key_save,
-        'target_comp': composition_save,
-        'prototype_path': prototype_save,
+        "default": default_key_save,
+        "target_comp": composition_save,
+        "prototype_path": prototype_save,
     }
 
     # rank reactions first to prevent leakage of key reactions
@@ -434,15 +410,12 @@ def split_reactions(reactions,
     # If other raw indexed reactions has one of those targets,
     # then the target family are recorded again.
     # TODO: doi and raw index should always exist. change to assert
-    assert 'year' in reactions[0]
-    assert 'doi' in reactions[0]
-    assert 'raw_index' in reactions[0]
-    assert 'target_comp' in reactions[0]
-    assert 'prototype_path' in reactions[0]
-    reactions = sorted(
-        reactions,
-        key=lambda x: (x['year'], x['doi'], x['raw_index'])
-    )
+    assert "year" in reactions[0]
+    assert "doi" in reactions[0]
+    assert "raw_index" in reactions[0]
+    assert "target_comp" in reactions[0]
+    assert "prototype_path" in reactions[0]
+    reactions = sorted(reactions, key=lambda x: (x["year"], x["doi"], x["raw_index"]))
 
     # get all reaction keys
     reactions_keys = {k: set() for k in keys}
@@ -450,14 +423,10 @@ def split_reactions(reactions,
     for i, r in enumerate(reactions):
         any_key_exists = False
         for k in keys:
-            any_key_exists = (
-                any_key_exists | func_key_exists.get(
-                    k, func_key_exists['default']
-                )(r[k], reactions_keys[k])
-            )
-            func_key_save.get(
-                k, func_key_save['default']
+            any_key_exists = any_key_exists | func_key_exists.get(
+                k, func_key_exists["default"]
             )(r[k], reactions_keys[k])
+            func_key_save.get(k, func_key_save["default"])(r[k], reactions_keys[k])
 
         if not any_key_exists:
             reactions_key_indices.append(i)
@@ -468,33 +437,27 @@ def split_reactions(reactions,
     else:
         random_gen = random
     if by_year == True:
-        all_years = sorted(set([
-            reactions[i]['year']
-            for i in reactions_key_indices
-        ]))
+        all_years = sorted(set([reactions[i]["year"] for i in reactions_key_indices]))
         train_years, val_years, test_years = data_list_split(
             all_years,
             val_frac=val_frac,
             test_frac=test_frac,
         )
-        print('train_years', train_years)
-        print('val_years', val_years)
-        print('test_years', test_years)
+        print("train_years", train_years)
+        print("val_years", val_years)
+        print("test_years", test_years)
         train_years = set(train_years)
-        train_key_indices = list(filter(
-            lambda i: reactions[i]['year'] in train_years,
-            reactions_key_indices
-        ))
+        train_key_indices = list(
+            filter(lambda i: reactions[i]["year"] in train_years, reactions_key_indices)
+        )
         val_years = set(val_years)
-        val_key_indices = list(filter(
-            lambda i: reactions[i]['year'] in val_years,
-            reactions_key_indices
-        ))
+        val_key_indices = list(
+            filter(lambda i: reactions[i]["year"] in val_years, reactions_key_indices)
+        )
         test_years = set(test_years)
-        test_key_indices = list(filter(
-            lambda i: reactions[i]['year'] in test_years,
-            reactions_key_indices
-        ))
+        test_key_indices = list(
+            filter(lambda i: reactions[i]["year"] in test_years, reactions_key_indices)
+        )
     else:
         random_gen.shuffle(reactions_key_indices)
         train_key_indices, val_key_indices, test_key_indices = data_list_split(
@@ -536,9 +499,9 @@ def split_reactions(reactions,
                 if i in key_indices_to_select:
                     to_select = True
                 for k in keys:
-                    if func_key_exists.get(
-                        k, func_key_exists['default']
-                    )(r[k], selected_keys[k]):
+                    if func_key_exists.get(k, func_key_exists["default"])(
+                        r[k], selected_keys[k]
+                    ):
                         to_select = True
                         break
 
@@ -546,18 +509,19 @@ def split_reactions(reactions,
                     reaction_index_selected.add(i)
                     selected_reactions.append(r)
                     for k in keys:
-                        func_key_save.get(
-                            k, func_key_save['default']
-                        )(r[k], selected_keys[k])
+                        func_key_save.get(k, func_key_save["default"])(
+                            r[k], selected_keys[k]
+                        )
         train_val_test_sets.append(selected_reactions)
 
-    print('split_reactions input_data: ', len(reactions))
-    print('split_reactions train: ', len(train_val_test_sets[0]))
-    print('split_reactions val: ', len(train_val_test_sets[1]))
-    print('split_reactions test: ', len(train_val_test_sets[2]))
+    print("split_reactions input_data: ", len(reactions))
+    print("split_reactions train: ", len(train_val_test_sets[0]))
+    print("split_reactions val: ", len(train_val_test_sets[1]))
+    print("split_reactions test: ", len(train_val_test_sets[2]))
 
-    assert len(reaction_index_selected) == len(reactions), \
-        'Reaction might be missed in data spliting!'
+    assert len(reaction_index_selected) == len(
+        reactions
+    ), "Reaction might be missed in data spliting!"
 
     return tuple(train_val_test_sets)
 
@@ -571,22 +535,21 @@ def data_list_split(input_data, val_frac=0.1, test_frac=0.1):
     :return:
     """
     data_len = len(input_data)
-    train = input_data[:int(data_len*(1-val_frac-test_frac))]
-    val = input_data[int(data_len*(1-val_frac-test_frac)): int(data_len*(1-test_frac))]
-    test = input_data[int(data_len*(1-test_frac)): ]
+    train = input_data[: int(data_len * (1 - val_frac - test_frac))]
+    val = input_data[
+        int(data_len * (1 - val_frac - test_frac)) : int(data_len * (1 - test_frac))
+    ]
+    test = input_data[int(data_len * (1 - test_frac)) :]
 
-    print('data_list_split input_data: ', data_len)
-    print('data_list_split train: ', len(train))
-    print('data_list_split val: ', len(val))
-    print('data_list_split test: ', len(test))
+    print("data_list_split input_data: ", data_len)
+    print("data_list_split train: ", len(train))
+    print("data_list_split val: ", len(val))
+    print("data_list_split test: ", len(test))
 
     return train, val, test
 
-def random_drop_in_list(
-    input_data: List,
-    sample_shape: Union[Tuple, List],
-    drop_n=0
-):
+
+def random_drop_in_list(input_data: List, sample_shape: Union[Tuple, List], drop_n=0):
     if drop_n < 0:
         # TODO: why len(input_data) could be zero sometimes?
         drop_n = random.randint(1, max(min(-drop_n, len(input_data)), 1))
@@ -616,11 +579,9 @@ def repeat_in_last_dimension(from_tensor, from_seq_length=None, to_latent_dim=No
     #     ),
     #     (-1, from_seq_length, to_latent_dim)
     # )
-    repeated_tensor = tf.expand_dims(
-        from_tensor,
-        2
-    )
+    repeated_tensor = tf.expand_dims(from_tensor, 2)
     return repeated_tensor
+
 
 def get_mat_mask_in_mat_seq(mat_seq, dtype=None):
     """
@@ -638,6 +599,7 @@ def get_mat_mask_in_mat_seq(mat_seq, dtype=None):
     if dtype is not None:
         mat_mask = tf.cast(mat_mask, dtype)
     return mat_mask
+
 
 def get_combination_pairs(batch_data, to_shape, data_to_use=[]):
     """
@@ -657,9 +619,9 @@ def get_combination_pairs(batch_data, to_shape, data_to_use=[]):
     """
     repeat_times = batch_data.shape[1]
     dim_num = len(batch_data.shape)
-    repeat_shape_left = np.ones(dim_num+1).astype(np.int32)
+    repeat_shape_left = np.ones(dim_num + 1).astype(np.int32)
     repeat_shape_left[1] = repeat_times
-    repeat_shape_right = np.ones(dim_num+1).astype(np.int32)
+    repeat_shape_right = np.ones(dim_num + 1).astype(np.int32)
     repeat_shape_right[2] = repeat_times
 
     # pairs_left: (None, repeat_times, max_mats_num, num_eles)
@@ -669,13 +631,10 @@ def get_combination_pairs(batch_data, to_shape, data_to_use=[]):
     #     (m1, m2, m3)
     #     (m1, m2, m3)
     # )
-    pairs_left = tf.tile(
-        tf.expand_dims(batch_data, 1),
-        repeat_shape_left
-    )
+    pairs_left = tf.tile(tf.expand_dims(batch_data, 1), repeat_shape_left)
     if len(data_to_use) == 2:
         # pairs_left: (None, repeat_times, data_to_use[1]-data_to_use[0], num_eles)
-        pairs_left = pairs_left[:,:,data_to_use[0]:data_to_use[1]]
+        pairs_left = pairs_left[:, :, data_to_use[0] : data_to_use[1]]
     # pairs_left: (None*repeat_times*max_mats_num, num_eles)
     #     or (None*repeat_times*(data_to_use[1]-data_to_use[0]), num_eles)
     pairs_left = tf.reshape(pairs_left, to_shape)
@@ -687,13 +646,10 @@ def get_combination_pairs(batch_data, to_shape, data_to_use=[]):
     #     (m2, m2, m2)
     #     (m3, m3, m3)
     # )
-    pairs_right = tf.tile(
-        tf.expand_dims(batch_data, 2),
-        repeat_shape_right
-    )
+    pairs_right = tf.tile(tf.expand_dims(batch_data, 2), repeat_shape_right)
     if len(data_to_use) == 2:
         # pairs_right: (None, max_mats_num, data_to_use[1]-data_to_use[0], num_eles)
-        pairs_right = pairs_right[:,:,data_to_use[0]:data_to_use[1]]
+        pairs_right = pairs_right[:, :, data_to_use[0] : data_to_use[1]]
     # pairs_right: (None*max_mats_num*repeat_times, num_eles)
     #     or (None*max_mats_num*(data_to_use[1]-data_to_use[0]), num_eles)
     pairs_right = tf.reshape(pairs_right, to_shape)
@@ -727,24 +683,30 @@ def get_mat_pairs_in_reaction(reactions, mat_mask, data_to_use=[]):
     # mat_pairs_left: (None, repeat_times, max_mats_num)
     pair_mask_left = tf.tile(
         tf.expand_dims(mat_mask, 1),
-        [1, repeat_times, 1, ]
+        [
+            1,
+            repeat_times,
+            1,
+        ],
     )
     # pair_mask_right: (None, max_mats_num, repeat_times)
     pair_mask_right = tf.tile(
         tf.expand_dims(mat_mask, 2),
-        [1, 1, repeat_times, ]
+        [
+            1,
+            1,
+            repeat_times,
+        ],
     )
     # pair_mask: (None, max_mats_num, max_mats_num)
-    pair_mask = pair_mask_left*pair_mask_right
+    pair_mask = pair_mask_left * pair_mask_right
     pair_mask = tf.linalg.set_diag(
         pair_mask,
-        tf.zeros(
-            tf.shape(pair_mask)[:-1]
-        ),
+        tf.zeros(tf.shape(pair_mask)[:-1]),
     )
     if len(data_to_use) == 2:
         # pair_mask: (None, max_mats_num, data_to_use[1]-data_to_use[0])
-        pair_mask = pair_mask[:,:,data_to_use[0]:data_to_use[1]]
+        pair_mask = pair_mask[:, :, data_to_use[0] : data_to_use[1]]
     # pair_mask: (None*max_mats_num*max_mats_num)
     #   or (None * max_mats_num * (data_to_use[1]-data_to_use[0]),)
     pair_mask = tf.reshape(pair_mask, (-1,))
@@ -753,6 +715,7 @@ def get_mat_pairs_in_reaction(reactions, mat_mask, data_to_use=[]):
     mat_pairs_right = mat_pairs_right * tf.expand_dims(pair_mask, 1)
 
     return mat_pairs_left, mat_pairs_right, pair_mask
+
 
 def get_mat_label(materials, mat_labels_lookup):
     """
@@ -766,11 +729,13 @@ def get_mat_label(materials, mat_labels_lookup):
     labels = mat_labels_lookup.lookup(comp_str)
     return labels
 
+
 def ordereddict_to_simple_text(input_dict):
-    simple_text = ''
+    simple_text = ""
     for k, v in input_dict.items():
-        simple_text += str(k)+str(v)
+        simple_text += str(k) + str(v)
     return simple_text
+
 
 def dict_to_simple_formula(input_dict):
     input_dict = {k: float(v) for (k, v) in input_dict.items()}
@@ -784,9 +749,8 @@ def dict_to_simple_formula(input_dict):
         )
         return comp
 
-def group_precursors(all_precursors,
-                     all_elements,
-                     eles_order):
+
+def group_precursors(all_precursors, all_elements, eles_order):
     """
 
     :param all_precursors: list of array, each array is a representation
@@ -797,48 +761,57 @@ def group_precursors(all_precursors,
     """
     groups_by_ele_order = []
     eles_separated = set(eles_order) | set(allNonMetalElements)
-    eles_order = eles_order + list(filter(
-        lambda x: x not in eles_separated,
-        all_elements
-    )) + allNonMetalElements
+    eles_order = (
+        eles_order
+        + list(filter(lambda x: x not in eles_separated, all_elements))
+        + allNonMetalElements
+    )
     eles_order = list(filter(lambda x: x in all_elements, eles_order))
     precursors_grouped_index = set()
     for ele in eles_order:
         ele_index = all_elements.index(ele)
-        tmp_group = list(filter(
-            lambda i: (all_precursors[i][ele_index] > 0
-                       and i not in precursors_grouped_index),
-            range(len(all_precursors))
-        ))
+        tmp_group = list(
+            filter(
+                lambda i: (
+                    all_precursors[i][ele_index] > 0
+                    and i not in precursors_grouped_index
+                ),
+                range(len(all_precursors)),
+            )
+        )
         if len(tmp_group) > 0:
             groups_by_ele_order.append(
                 {
-                    'ele': ele,
-                    'precursors': list(map(lambda i: all_precursors[i], tmp_group))
+                    "ele": ele,
+                    "precursors": list(map(lambda i: all_precursors[i], tmp_group)),
                 }
             )
             precursors_grouped_index.update(tmp_group)
     return groups_by_ele_order
 
-def plot_heatmap(precursors,
-                 matrix_crossing,
-                 sep_lines=[],
-                 mask=None,
-                 title='',
-                 save_path='',
-                 show_fig=False):
+
+def plot_heatmap(
+    precursors,
+    matrix_crossing,
+    sep_lines=[],
+    mask=None,
+    title="",
+    save_path="",
+    show_fig=False,
+):
     # plot heatmaps
-    df = pd.DataFrame(columns=['P1', 'P2', 'crossing_term'])
+    df = pd.DataFrame(columns=["P1", "P2", "crossing_term"])
     for i in range(len(matrix_crossing)):
         for j in range(len(matrix_crossing[i])):
             dfa = pd.DataFrame(
                 [[precursors[i], precursors[j], float(matrix_crossing[i][j])]],
-                columns=['P1', 'P2', 'crossing_term'])
+                columns=["P1", "P2", "crossing_term"],
+            )
             df = df.append(dfa)
 
-    df['P1'] = pd.Categorical(df['P1'], precursors)
-    df['P2'] = pd.Categorical(df['P2'], precursors)
-    df = df.pivot('P1', 'P2', 'crossing_term')
+    df["P1"] = pd.Categorical(df["P1"], precursors)
+    df["P2"] = pd.Categorical(df["P2"], precursors)
+    df = df.pivot("P1", "P2", "crossing_term")
     if mask is not None:
         # seaborn use a reversed mask, 1 is to mask (invalid)
         mask = ~mask
@@ -851,14 +824,21 @@ def plot_heatmap(precursors,
     # g = sns.heatmap(df, mask=mask, cmap=cmap, vmin=-5, vmax=5,
     #                 cbar_kws={"shrink": 1.0, 'ticks': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]})
     # g = sns.heatmap(df, mask=mask, cmap=cmap, vmin=-1, vmax=1, cbar_kws={"shrink": 1.0, })
-    g = sns.heatmap(df, mask=mask, cmap=cmap, cbar_kws={"shrink": 1.0, })
+    g = sns.heatmap(
+        df,
+        mask=mask,
+        cmap=cmap,
+        cbar_kws={
+            "shrink": 1.0,
+        },
+    )
 
     # title things
     # g.set_title('Substitution of precursors', size=20)
     # g.set_xlabel('Precursor A', size=32)
     # g.set_ylabel('Precursor B', size=32)
-    g.set_xlabel('', size=32)
-    g.set_ylabel('', size=32)
+    g.set_xlabel("", size=32)
+    g.set_ylabel("", size=32)
     plt.setp(g.get_xticklabels(), rotation=90, size=28)
     plt.setp(g.get_yticklabels(), rotation=0, size=28)
 
@@ -883,11 +863,14 @@ def get_material_valence_details(composition: dict):
     if formula in valence_cache:
         oxi_details = valence_cache[formula]
     else:
-        oxi_state, is_usual, comments, oxi_details = (
-            CompositionInHouse.get_most_possible_oxi_state_of_composition(
-                composition,
-                return_details=True,
-            )
+        (
+            oxi_state,
+            is_usual,
+            comments,
+            oxi_details,
+        ) = CompositionInHouse.get_most_possible_oxi_state_of_composition(
+            composition,
+            return_details=True,
         )
         if len(oxi_details) == 1:
             oxi_details = oxi_details[0]
@@ -902,6 +885,7 @@ def get_material_valence_details(composition: dict):
         valence_cache[formula] = oxi_details
     return oxi_details
 
+
 def valence_to_array(mat_ion, ion_order):
     """
 
@@ -909,13 +893,14 @@ def valence_to_array(mat_ion, ion_order):
     :param ion_order: a list
     :return:
     """
-    ion_array = np.zeros((len(ion_order), ), dtype=np.float32)
+    ion_array = np.zeros((len(ion_order),), dtype=np.float32)
     ion_sum = max(sum(mat_ion.values()), NEAR_ZERO)
     for i, ion in enumerate(ion_order):
         if ion not in mat_ion:
             continue
-        ion_array[i] = mat_ion[ion]/ion_sum
+        ion_array[i] = mat_ion[ion] / ion_sum
     return ion_array
+
 
 def get_prototype(prototype_path):
     tmp_m = pattern_prototype.match(prototype_path)

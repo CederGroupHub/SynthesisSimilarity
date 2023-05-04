@@ -10,20 +10,16 @@ import inspect
 from typing import Optional
 
 from .bert_optimization import create_optimizer
-from .encoders import MaterialEncoder_2
 from .encoders import MaterialEncoder
-from .encoders import MaterialEncoder_3
 from .task_models import MaterialDecoder
-from .task_models import MaterialVariance
 from .task_models import PrecursorsPredict
-from .task_models import SynthesisTypePredict
-from .task_models import ReactionCompare
 from .losses import CustomLoss
 from .losses import MultiLossLayer
 
-__author__ = 'Tanjin He'
-__maintainer__ = 'Tanjin He'
-__email__ = 'tanjin_he@berkeley.edu'
+__author__ = "Tanjin He"
+__maintainer__ = "Tanjin He"
+__email__ = "tanjin_he@berkeley.edu"
+
 
 class MultiTasksOnRecipes(keras.Model):
     def __init__(
@@ -44,11 +40,11 @@ class MultiTasksOnRecipes(keras.Model):
         num_train_reactions,
         batch_size,
         num_train_steps,
-        featurizer_type='default',
+        featurizer_type="default",
         zero_shift_init_value=-0.5,
         zero_shift_trainable=False,
         decoder_final_activation=None,
-        decoder_loss_fn='mse',
+        decoder_loss_fn="mse",
         ele_pred_stoi_scale=1.0,
         bias_in_element_layer=True,
         constrain_element_layer=False,
@@ -61,16 +57,16 @@ class MultiTasksOnRecipes(keras.Model):
         ele_pred_focal_label_smoothing=0.0,
         ele_pred_circle_gamma=64,
         ele_pred_circle_margin=0.25,
-        mat_variance_loss_fn='abs_dot_sim',
+        mat_variance_loss_fn="abs_dot_sim",
         pre_pred_under_mask=True,
         pre_pred_atten_num_heads=1,
-        pre_pred_atten_hidden_activation='gelu',
+        pre_pred_atten_hidden_activation="gelu",
         pre_pred_atten_hidden_dropout=0.1,
         pre_pred_atten_dropout=0.1,
         pre_pred_atten_initializer_range=0.02,
-        pre_pred_loss_fn='cross_entropy',
+        pre_pred_loss_fn="cross_entropy",
         pre_pred_dot_prod_scale=1.0,
-        pre_pred_kernel_initializer='glorot_uniform',
+        pre_pred_kernel_initializer="glorot_uniform",
         pre_pred_initializer_max=0.05,
         pre_pred_lambda=1.0,
         pre_pred_balance_PN=True,
@@ -82,8 +78,8 @@ class MultiTasksOnRecipes(keras.Model):
         pre_pred_circle_margin=0.25,
         constrain_precursor_layer=False,
         bias_in_precursor_layer=False,
-        syn_type_pred_loss_fn='cross_entropy',
-        syn_type_pred_kernel_initializer='glorot_uniform',
+        syn_type_pred_loss_fn="cross_entropy",
+        syn_type_pred_kernel_initializer="glorot_uniform",
         syn_type_pred_initializer_max=0.05,
         syn_type_pred_lambda=1.0,
         syn_type_pred_balance_PN=True,
@@ -103,10 +99,10 @@ class MultiTasksOnRecipes(keras.Model):
         mat_counts: Optional[list] = None,
         syn_type_labels: Optional[list] = None,
         syn_type_counts: Optional[list] = None,
-        lr_method_name='adam',
+        lr_method_name="adam",
         init_learning_rate=5e-5,
         num_warmup_steps=10000,
-        encoder_type='simple_hidden',
+        encoder_type="simple_hidden",
         encoder_normalize_output=True,
         ele_emb_init_max=10,
         weight_mat_decoder=1.0,
@@ -189,7 +185,9 @@ class MultiTasksOnRecipes(keras.Model):
             self.syn_type_pred_clip_logits = syn_type_pred_clip_logits
             self.syn_type_pred_focal_gamma = syn_type_pred_focal_gamma
             self.syn_type_pred_focal_alpha = syn_type_pred_focal_alpha
-            self.syn_type_pred_focal_label_smoothing = syn_type_pred_focal_label_smoothing
+            self.syn_type_pred_focal_label_smoothing = (
+                syn_type_pred_focal_label_smoothing
+            )
             self.syn_type_pred_circle_gamma = syn_type_pred_circle_gamma
             self.syn_type_pred_circle_margin = syn_type_pred_circle_margin
             self.constrain_syn_type_layer = constrain_syn_type_layer
@@ -208,7 +206,7 @@ class MultiTasksOnRecipes(keras.Model):
                         values=tf.range(len(mat_labels), dtype=tf.int64),
                     ),
                     default_value=tf.constant(1, dtype=tf.int64),
-                    name="mat_labels"
+                    name="mat_labels",
                 )
                 # mat_compositions is tf list of compositions, index is
                 # mat_label
@@ -222,7 +220,7 @@ class MultiTasksOnRecipes(keras.Model):
                         values=tf.range(len(syn_type_labels), dtype=tf.int64),
                     ),
                     default_value=tf.constant(1, dtype=tf.int64),
-                    name="syn_type_labels"
+                    name="syn_type_labels",
                 )
                 self.syn_type_strings = tf.constant(syn_type_labels)
                 self.syn_type_counts = syn_type_counts
@@ -242,21 +240,7 @@ class MultiTasksOnRecipes(keras.Model):
             self.weight_mat_variance = weight_mat_variance
             self.use_adaptive_multi_loss = use_adaptive_multi_loss
 
-            if self.encoder_type == 'attention':
-                self.mat_encoder = MaterialEncoder_2(
-                    mat_feature_len=self.mat_feature_len,
-                    dim_features=self.ele_dim_features,
-                    latent_dim=self.mat_dim,
-                    num_attention_layers=self.num_attention_layers,
-                    num_attention_heads=self.num_attention_heads,
-                    hidden_activation=self.hidden_activation,
-                    hidden_dropout=self.hidden_dropout,
-                    attention_dropout=self.attention_dropout,
-                    initializer_range=self.initializer_range,
-                    ele_emb_init_max=self.ele_emb_init_max,
-                    normalize_output=self.encoder_normalize_output,
-                )
-            elif self.encoder_type == 'simple_hidden':
+            if self.encoder_type == "simple_hidden":
                 self.mat_encoder = MaterialEncoder(
                     mat_feature_len=self.mat_feature_len,
                     dim_features=self.ele_dim_features,
@@ -271,15 +255,9 @@ class MultiTasksOnRecipes(keras.Model):
                     initializer_range=self.initializer_range,
                     normalize_output=self.encoder_normalize_output,
                 )
-            elif self.encoder_type == 'empty':
-                self.mat_encoder = MaterialEncoder_3(
-                    zero_shift_init_value=self.zero_shift_init_value,
-                    zero_shift_trainable=self.zero_shift_trainable,
-                )
-                self.mat_dim = self.mat_feature_len
             else:
                 self.mat_encoder = None
-                raise ValueError('encoder_type is not properly specified!')
+                raise ValueError("encoder_type is not properly specified!")
 
             # add tasks
             self.task_names = []
@@ -287,7 +265,7 @@ class MultiTasksOnRecipes(keras.Model):
             self._model_by_task = {}
             self._loss_by_task = {}
 
-            task_name = 'mat'
+            task_name = "mat"
             if task_name in self.task_to_add:
                 mat_decoder = MaterialDecoder(
                     mat_feature_len=self.mat_feature_len,
@@ -317,25 +295,10 @@ class MultiTasksOnRecipes(keras.Model):
                     task_name=task_name,
                     task_model=mat_decoder,
                     task_loss=self.get_loss_mat,
-                    task_weight=self.weight_mat_decoder
+                    task_weight=self.weight_mat_decoder,
                 )
 
-            task_name = 'mat_variance'
-            if task_name in self.task_to_add:
-                mat_variance = MaterialVariance(
-                    mat_feature_len=self.mat_feature_len,
-                    latent_dim=self.mat_dim,
-                    mat_encoder=self.mat_encoder,
-                    loss_fn=self.mat_variance_loss_fn,
-                )
-                self.add_task(
-                    task_name=task_name,
-                    task_model=mat_variance,
-                    task_loss=self.get_loss_mat_variance,
-                    task_weight=self.weight_mat_variance
-                )
-
-            task_name = 'reaction_pre'
+            task_name = "reaction_pre"
             if task_name in self.task_to_add:
                 pre_predict = PrecursorsPredict(
                     mat_feature_len=self.mat_feature_len,
@@ -373,70 +336,19 @@ class MultiTasksOnRecipes(keras.Model):
                     task_name=task_name,
                     task_model=pre_predict,
                     task_loss=self.get_loss_reaction_pre,
-                    task_weight=self.weight_pre_predict
+                    task_weight=self.weight_pre_predict,
                 )
 
-            # task_name = 'syn_type'
-            # if task_name in self.task_to_add:
-            #     syn_type_predict = SynthesisTypePredict(
-            #         num_eles=self.num_eles,
-            #         max_mats_num=self.max_mats_num,
-            #         latent_dim=self.mat_dim,
-            #         mat_encoder=self.mat_encoder,
-            #         syn_type_labels=self.syn_type_labels,
-            #         syn_type_strings=self.syn_type_strings,
-            #         syn_type_counts=self.syn_type_counts,
-            #         num_train_reactions=self.num_train_reactions,
-            #         batch_size=self.batch_size,
-            #         num_reserved_ids=self.num_reserved_ids,
-            #         constrain_syn_type_layer=self.constrain_syn_type_layer,
-            #         bias_in_syn_type_layer=self.bias_in_syn_type_layer,
-            #         norm_in_syn_type_projection=self.norm_in_syn_type_projection,
-            #         loss_fn=self.syn_type_pred_loss_fn,
-            #         kernel_initializer=self.syn_type_pred_kernel_initializer,
-            #         initializer_max=self.syn_type_pred_initializer_max,
-            #         regularization_lambda=self.syn_type_pred_lambda,
-            #         dot_prod_scale=self.syn_type_pred_dot_prod_scale,
-            #         balance_PN=self.syn_type_pred_balance_PN,
-            #         clip_logits=self.syn_type_pred_clip_logits,
-            #         focal_gamma=self.syn_type_pred_focal_gamma,
-            #         focal_alpha=self.syn_type_pred_focal_alpha,
-            #         focal_label_smoothing=self.syn_type_pred_focal_label_smoothing,
-            #         circle_gamma=self.syn_type_pred_circle_gamma,
-            #         circle_margin=self.syn_type_pred_circle_margin,
-            #     )
-            #     self.add_task(
-            #         task_name=task_name,
-            #         task_model=syn_type_predict,
-            #         task_loss=self.get_loss_syn_type,
-            #         task_weight=self.weight_syn_type_predict
-            #     )
-
-            # task_name = 'reaction_pair'
-            # if task_name in self.task_to_add:
-            #     sim_between_react = ReactionCompare(
-            #          num_eles=self.num_eles,
-            #          max_mats_num=self.max_mats_num,
-            #          mat_encoder=self.mat_encoder,
-            #          latent_dim=self.mat_dim,
-            #     )
-            #     self.add_task(
-            #         task_name=task_name,
-            #         task_model=sim_between_react,
-            #         task_loss=self.get_loss_reaction_pair,
-            #         task_weight=self.weight_sim_between_react,
-            #     )
-
             # optimizer
-            if self.lr_method_name == 'sgd':
+            if self.lr_method_name == "sgd":
                 self.optimizer = keras.optimizers.SGD(
                     learning_rate=self.init_learning_rate,
                 )
-            elif self.lr_method_name == 'adam':
+            elif self.lr_method_name == "adam":
                 self.optimizer = keras.optimizers.Adam(
                     learning_rate=self.init_learning_rate,
                 )
-            elif self.lr_method_name == 'adamdecay':
+            elif self.lr_method_name == "adamdecay":
                 # a good ref
                 # https://github.com/google-research/bert/blob/master/optimization.py
                 self.optimizer = create_optimizer(
@@ -452,7 +364,7 @@ class MultiTasksOnRecipes(keras.Model):
             # loss function
             # https://github.com/yaringal/multi-task-learning-example/blob/master/multi-task-learning-example.ipynb
             # https://arxiv.org/pdf/1705.07115.pdf
-            self.loss = CustomLoss(name='loss_layer')
+            self.loss = CustomLoss(name="loss_layer")
             # self.loss = keras.losses.MeanAbsoluteError()
         self.compile(
             optimizer=self.optimizer,
@@ -462,13 +374,9 @@ class MultiTasksOnRecipes(keras.Model):
     def set_model_path(self, model_path, model_name):
         if not model_path:
             if model_name:
-                self.model_path = os.path.join(
-                    '../generated', model_name
-                )
+                self.model_path = os.path.join("../generated", model_name)
             else:
-                self.model_path = os.path.join(
-                    '../generated', 'model_0'
-                )
+                self.model_path = os.path.join("../generated", "model_0")
             if not os.path.exists(self.model_path):
                 os.makedirs(self.model_path)
         else:
@@ -485,8 +393,7 @@ class MultiTasksOnRecipes(keras.Model):
             )
 
         loss = tf.stack(loss, axis=1)
-        if (self.use_adaptive_multi_loss and
-            len(self.task_names) > 1):
+        if self.use_adaptive_multi_loss and len(self.task_names) > 1:
             loss = self.adaptive_loss(loss)
         else:
             loss = tf.reduce_sum(loss, axis=1)
@@ -503,9 +410,11 @@ class MultiTasksOnRecipes(keras.Model):
         self._model_by_task[task_name] = task_model
         self._loss_by_task[task_name] = task_loss
         self._weight_by_task[task_name] = task_weight
-        if (self.use_adaptive_multi_loss and
-                len(self.task_names) > 1 and
-                set(self.task_to_add).issubset(set(self.task_names))):
+        if (
+            self.use_adaptive_multi_loss
+            and len(self.task_names) > 1
+            and set(self.task_to_add).issubset(set(self.task_names))
+        ):
             self.adaptive_loss = MultiLossLayer(
                 task_names=self.task_names,
             )
@@ -522,46 +431,41 @@ class MultiTasksOnRecipes(keras.Model):
         # all_reactions: (batch_size, 2, max_mats_num, num_eles)
         all_reactions = tf.stack(
             [
-                inputs['reaction_1'],
-                inputs['reaction_2'],
+                inputs["reaction_1"],
+                inputs["reaction_2"],
             ],
             axis=1,
         )
         # all_reactions: (batch_size*2, max_mats_num, num_eles)
         all_reactions = tf.reshape(
-            all_reactions,
-            (-1, self.max_mats_num, self.num_eles)
+            all_reactions, (-1, self.max_mats_num, self.num_eles)
         )
 
         # all_reactions: (batch_size, 2, max_mats_num, mat_feature_len)
         all_reactions_featurized = tf.stack(
             [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
+                inputs["reaction_1_featurized"],
+                inputs["reaction_2_featurized"],
             ],
             axis=1,
         )
         # all_reactions: (batch_size*2, max_mats_num, mat_feature_len)
         all_reactions_featurized = tf.reshape(
-            all_reactions_featurized,
-            (-1, self.max_mats_num, self.mat_feature_len)
+            all_reactions_featurized, (-1, self.max_mats_num, self.mat_feature_len)
         )
 
         # only use target for stoichiometry recovery
         # all_mats: (batch_size*2, num_eles)
-        all_mats = all_reactions[:,0,:]
+        all_mats = all_reactions[:, 0, :]
         # all_mats_featurized: (batch_size*2, mat_feature_len)
-        all_mats_featurized = all_reactions_featurized[:,0,:]
+        all_mats_featurized = all_reactions_featurized[:, 0, :]
 
         # loss_mat: (batch_size*2, )
         loss_mat = self._model_by_task[task_name]._loss_fn(
             all_mats, all_mats_featurized
         )
         # loss_mat: (batch_size, 2)
-        loss_mat = tf.reshape(
-            loss_mat,
-            (-1, 2)
-        )
+        loss_mat = tf.reshape(loss_mat, (-1, 2))
         # loss_mat: (batch_size, )
         loss_mat = tf.reduce_sum(loss_mat, -1)
         return loss_mat
@@ -578,24 +482,21 @@ class MultiTasksOnRecipes(keras.Model):
         # all_reactions: (batch_size, 2, max_mats_num, mat_feature_len)
         all_reactions_featurized = tf.stack(
             [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
+                inputs["reaction_1_featurized"],
+                inputs["reaction_2_featurized"],
             ],
             axis=1,
         )
         # all_reactions: (batch_size*2, max_mats_num, mat_feature_len)
         all_reactions_featurized = tf.reshape(
-            all_reactions_featurized,
-            (-1, self.max_mats_num, self.mat_feature_len)
+            all_reactions_featurized, (-1, self.max_mats_num, self.mat_feature_len)
         )
 
         # all_mats_featurized: (batch_size*2, mat_feature_len)
-        all_mats_featurized = all_reactions_featurized[:,0,:]
+        all_mats_featurized = all_reactions_featurized[:, 0, :]
 
         # loss_mat: (batch_size*2, )
-        loss_mat_variance = self._model_by_task[task_name]._loss_fn(
-            all_mats_featurized
-        )
+        loss_mat_variance = self._model_by_task[task_name]._loss_fn(all_mats_featurized)
 
         # loss_mat_variance: (batch_size, 2)
         loss_mat_variance = tf.reshape(loss_mat_variance, (-1, 2))
@@ -614,43 +515,43 @@ class MultiTasksOnRecipes(keras.Model):
         # all_reactions: (batch_size, 2, max_mats_num, num_eles)
         all_reactions = tf.stack(
             [
-                inputs['reaction_1'],
-                inputs['reaction_2'],
+                inputs["reaction_1"],
+                inputs["reaction_2"],
             ],
             axis=1,
         )
         # all_reactions: (batch_size*2, max_mats_num, num_eles)
         all_reactions = tf.reshape(
             all_reactions,
-            (-1, self.max_mats_num, self.num_eles)
+            (-1, self.max_mats_num, self.num_eles),
         )
 
         # all_reactions_featurized: (batch_size, 2, max_mats_num, mat_feature_len)
         all_reactions_featurized = tf.stack(
             [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
+                inputs["reaction_1_featurized"],
+                inputs["reaction_2_featurized"],
             ],
             axis=1,
         )
         # all_reactions_featurized: (batch_size*2, max_mats_num, mat_feature_len)
         all_reactions_featurized = tf.reshape(
             all_reactions_featurized,
-            (-1, self.max_mats_num, self.mat_feature_len)
+            (-1, self.max_mats_num, self.mat_feature_len),
         )
 
         # all_reactions: (batch_size, 2, max_mats_num-1, num_eles)
         all_precursors_conditional = tf.stack(
             [
-                inputs['precursors_1_conditional'],
-                inputs['precursors_2_conditional'],
+                inputs["precursors_1_conditional"],
+                inputs["precursors_2_conditional"],
             ],
             axis=1,
         )
         # all_reactions: (batch_size*2, max_mats_num-1, num_eles)
         all_precursors_conditional = tf.reshape(
             all_precursors_conditional,
-            (-1, self.max_mats_num-1, self.num_eles)
+            (-1, self.max_mats_num - 1, self.num_eles),
         )
 
         # all_reactions = tf.random.shuffle(all_reactions)
@@ -663,81 +564,6 @@ class MultiTasksOnRecipes(keras.Model):
         loss_reaction = tf.reduce_sum(loss_reaction, -1)
         return loss_reaction
 
-    def get_loss_syn_type(self, inputs, task_name):
-        """
-        word2vec/bert - like material embedding in recipe
-        :param inputs: same as call()
-        :param task_name: string, will be filled according to the record added by add_task()
-        :return: (batch_size, ) for each batch data
-        """
-        # all_reactions: (batch_size, 2, max_mats_num, num_eles)
-        all_reactions = tf.stack(
-            [
-                inputs['reaction_1'],
-                inputs['reaction_2'],
-            ],
-            axis=1,
-        )
-        # all_reactions: (batch_size*2, max_mats_num, num_eles)
-        all_reactions = tf.reshape(
-            all_reactions,
-            (-1, self.max_mats_num, self.num_eles)
-        )
-
-        # all_reactions_featurized: (batch_size, 2, max_mats_num, mat_feature_len)
-        all_reactions_featurized = tf.stack(
-            [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
-            ],
-            axis=1,
-        )
-        # all_reactions_featurized: (batch_size*2, max_mats_num, mat_feature_len)
-        all_reactions_featurized = tf.reshape(
-            all_reactions_featurized,
-            (-1, self.max_mats_num, self.mat_feature_len)
-        )
-
-        # all_reactions: (batch_size, 2, )
-        all_syn_types = tf.stack(
-            [
-                inputs['synthesis_type_1'],
-                inputs['synthesis_type_2'],
-            ],
-            axis=1,
-        )
-        # all_reactions: (batch_size*2, )
-        all_syn_types = tf.reshape(
-            all_syn_types,
-            (-1, )
-        )
-
-        # all_reactions = tf.random.shuffle(all_reactions)
-        loss_syn_type = self._model_by_task[task_name]._loss_fn(
-            syn_types=all_syn_types,
-            reactions_featurized=all_reactions_featurized,
-        )
-        loss_syn_type = tf.reshape(loss_syn_type, (-1, 2))
-        loss_syn_type = tf.reduce_sum(loss_syn_type, -1)
-        return loss_syn_type
-
-    def get_loss_reaction_pair(self, inputs, task_name):
-        """
-        regularize by sim(T) = A sim(P)
-        :param inputs: same as call()
-        :param task_name: string, will be filled according to the record added by add_task()
-        :return: (batch_size, ) for each batch data
-        """
-        all_pairs_featurized = tf.stack(
-            [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
-            ],
-            axis=1,
-        )
-        loss_reaction_pair = self._model_by_task[task_name](all_pairs_featurized)
-        return loss_reaction_pair
-
     def get_mat_vector(self, comps: np.ndarray, **kwargs):
         # TODO: comps here should be featurized already, maybe automate this process
         assert comps.shape[1] == self.mat_feature_len
@@ -747,30 +573,33 @@ class MultiTasksOnRecipes(keras.Model):
     def recover_mat(self, comps, **kwargs):
         assert comps.shape[1] == self.mat_feature_len
         x_mat_mean, x_mat_log_var, x_mat = self.mat_encoder(comps)
-        mat = self._model_by_task['mat'](x_mat_mean)
+        mat = self._model_by_task["mat"](x_mat_mean)
         tf.print(x_mat_mean, x_mat_log_var, x_mat)
         return mat
 
+
 class ExportModel(keras.Model):
-    def __init__(self,
-                 max_mats_num,
-                 all_eles,
-                 all_ions,
-                 mat_feature_len,
-                 ele_dim_features,
-                 num_attention_layers,
-                 num_attention_heads,
-                 hidden_activation,
-                 hidden_dropout,
-                 attention_dropout,
-                 initializer_range,
-                 encoder_type='attention',
-                 encoder_normalize_output=True,
-                 ele_emb_init_max=10,
-                 featurizer_type='default',
-                 zero_shift_init_value=-0.5,
-                 zero_shift_trainable=False,
-                 **kwargs):
+    def __init__(
+        self,
+        max_mats_num,
+        all_eles,
+        all_ions,
+        mat_feature_len,
+        ele_dim_features,
+        num_attention_layers,
+        num_attention_heads,
+        hidden_activation,
+        hidden_dropout,
+        attention_dropout,
+        initializer_range,
+        encoder_type="attention",
+        encoder_normalize_output=True,
+        ele_emb_init_max=10,
+        featurizer_type="default",
+        zero_shift_init_value=-0.5,
+        zero_shift_trainable=False,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         # init
         self.max_mats_num = max_mats_num
@@ -793,21 +622,7 @@ class ExportModel(keras.Model):
         self.zero_shift_init_value = zero_shift_init_value
         self.zero_shift_trainable = zero_shift_trainable
 
-        if self.encoder_type == 'attention':
-            self.mat_encoder = MaterialEncoder_2(
-                mat_feature_len=self.mat_feature_len,
-                dim_features=self.ele_dim_features,
-                latent_dim=self.mat_dim,
-                num_attention_layers=self.num_attention_layers,
-                num_attention_heads=self.num_attention_heads,
-                hidden_activation=self.hidden_activation,
-                hidden_dropout=self.hidden_dropout,
-                attention_dropout=self.attention_dropout,
-                initializer_range=self.initializer_range,
-                ele_emb_init_max=self.ele_emb_init_max,
-                normalize_output=self.encoder_normalize_output,
-            )
-        elif self.encoder_type == 'simple_hidden':
+        if self.encoder_type == "simple_hidden":
             self.mat_encoder = MaterialEncoder(
                 mat_feature_len=self.mat_feature_len,
                 dim_features=self.ele_dim_features,
@@ -822,19 +637,13 @@ class ExportModel(keras.Model):
                 initializer_range=self.initializer_range,
                 normalize_output=self.encoder_normalize_output,
             )
-        elif self.encoder_type == 'empty':
-            self.mat_encoder = MaterialEncoder_3(
-                zero_shift_init_value=self.zero_shift_init_value,
-                zero_shift_trainable=self.zero_shift_trainable,
-            )
-            self.mat_dim = self.mat_feature_len
         else:
             self.mat_encoder = None
-            raise ValueError('encoder_type is not properly specified!')
+            raise ValueError("encoder_type is not properly specified!")
 
 
 def export_model(model_dir, model_config, multi_task_model):
-    mat_feature_len = model_config['mat_feature_len']
+    mat_feature_len = model_config["mat_feature_len"]
     input_shape = [None, mat_feature_len]
     input_type = tf.float32
 
@@ -842,31 +651,26 @@ def export_model(model_dir, model_config, multi_task_model):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
 
-        @tf.function(
-            input_signature=[
-                tf.TensorSpec(input_shape, input_type)
-            ]
-        )
+        @tf.function(input_signature=[tf.TensorSpec(input_shape, input_type)])
         def __call__(self, x):
             assert x.shape[1] == self.mat_feature_len
             x_mat_mean, x_mat_log_var, x_mat = self.mat_encoder(x)
             return x_mat_mean
 
     signature = inspect.signature(ExportModel.__init__)
-    model_config = dict(filter(
-        lambda x: x[0] in signature.parameters,
-        model_config.items()
-    ))
+    model_config = dict(
+        filter(lambda x: x[0] in signature.parameters, model_config.items())
+    )
     model = CallableExportModel(**model_config)
-    cp_dir = os.path.join(model_dir, 'saved_checkpoint')
-    cp_path = os.path.join(cp_dir, 'saved_cp.ckpt')
+    cp_dir = os.path.join(model_dir, "saved_checkpoint")
+    cp_path = os.path.join(cp_dir, "saved_cp.ckpt")
     multi_task_model.mat_encoder.save_weights(cp_path)
-    if model.encoder_type not in {'empty', None}:
+    if model.encoder_type not in {"empty", None}:
         model.mat_encoder.load_weights(cp_path)
     if os.path.exists(cp_dir):
         shutil.rmtree(cp_dir)
     # Save the entire model as a SavedModel.
-    model_path = os.path.join(model_dir, 'saved_model')
+    model_path = os.path.join(model_dir, "saved_model")
     if not os.path.exists(model_path):
         os.makedirs(model_path)
     tf.saved_model.save(model, model_path)

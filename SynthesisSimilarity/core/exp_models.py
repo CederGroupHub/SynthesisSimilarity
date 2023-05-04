@@ -5,23 +5,16 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import math
-import inspect
 
-from .bert_optimization import create_optimizer
-from .encoders import MaterialEncoder_2
-from .encoders import MaterialEncoder
-from .task_models import MaterialDecoder
-from .task_models import ReactionCompare
-from .losses import CustomLoss
-from .losses import MultiLossLayer
 from .model_framework import MultiTasksOnRecipes
+
 # after experiments, we shall move ReactionTemperature
 # to .task_models.py if it is useful
 # from .task_models import ReactionTemperature
 
-__author__ = 'Tanjin He'
-__maintainer__ = 'Tanjin He'
-__email__ = 'tanjin_he@berkeley.edu'
+__author__ = "Tanjin He"
+__maintainer__ = "Tanjin He"
+__email__ = "tanjin_he@berkeley.edu"
 
 
 #################################################
@@ -33,10 +26,8 @@ class ReactionTemperature(keras.Model):
     This is an example of task model, please design your task
     based on this template
     """
-    def __init__(self,
-                 num_eles,
-                 mat_encoder,
-                 **kwargs):
+
+    def __init__(self, num_eles, mat_encoder, **kwargs):
         super().__init__(**kwargs)
         self.num_eles = num_eles
         self.mat_encoder = mat_encoder
@@ -51,7 +42,7 @@ class ReactionTemperature(keras.Model):
             shape=(),
             initializer=keras.initializers.Constant(1),
             trainable=True,
-            name='sim_diff_coeff'
+            name="sim_diff_coeff",
         )
 
     def call(self, inputs):
@@ -61,18 +52,18 @@ class ReactionTemperature(keras.Model):
         :return loss: (None, dim_features)
         """
         # inputs: (None, 2*num_eles+2)
-        target_1 = inputs[:, :self.num_eles]
-        target_2 = inputs[:, self.num_eles:2*self.num_eles]
-        T_1 = inputs[:, 2*self.num_eles]
-        T_2 = inputs[:, 2*self.num_eles+1]
+        target_1 = inputs[:, : self.num_eles]
+        target_2 = inputs[:, self.num_eles : 2 * self.num_eles]
+        T_1 = inputs[:, 2 * self.num_eles]
+        T_2 = inputs[:, 2 * self.num_eles + 1]
 
         # tar_emb_1 (None, latent_dim)
         tar_emb_1, _, _ = self.mat_encoder(target_1)
         tar_emb_2, _, _ = self.mat_encoder(target_2)
 
         # sim (None, )
-        sim_tar = tf.reduce_sum(tar_emb_1*tar_emb_2, axis=-1)
-        sim_T = 1 - tf.abs(T_1 - T_2)/(T_1 + T_2)
+        sim_tar = tf.reduce_sum(tar_emb_1 * tar_emb_2, axis=-1)
+        sim_T = 1 - tf.abs(T_1 - T_2) / (T_1 + T_2)
 
         return tf.square(sim_tar - self.alpha * sim_T)
 
@@ -83,7 +74,7 @@ class ExpMultiTasksOnRecipes(MultiTasksOnRecipes):
         #################################################
         #     add new tasks here
         #################################################
-        task_name = 'reaction_T'
+        task_name = "reaction_T"
         if task_name in self.task_to_add:
             reaction_T = ReactionTemperature(
                 num_eles=self.num_eles,
@@ -95,10 +86,9 @@ class ExpMultiTasksOnRecipes(MultiTasksOnRecipes):
                 task_loss=self.get_loss_target_T,
                 task_weight=1.0,
             )
-            print('reaction_T here')
+            print("reaction_T here")
 
-        print('tasks', self.task_names, self._weight_by_task)
-
+        print("tasks", self.task_names, self._weight_by_task)
 
     #################################################
     #     This is an example,  please design your task
@@ -117,14 +107,8 @@ class ExpMultiTasksOnRecipes(MultiTasksOnRecipes):
         # all_mats: (batch_size*max_mats_num*2, mat_feature_len)
         all_mats_featurized = keras.layers.concatenate(
             [
-                tf.reshape(
-                    inputs['reaction_1_featurized'],
-                    (-1, self.num_eles)
-                ),
-                tf.reshape(
-                    inputs['reaction_2_featurized'],
-                    (-1, self.num_eles)
-                ),
+                tf.reshape(inputs["reaction_1_featurized"], (-1, self.num_eles)),
+                tf.reshape(inputs["reaction_2_featurized"], (-1, self.num_eles)),
             ],
             axis=0,
         )
@@ -132,8 +116,8 @@ class ExpMultiTasksOnRecipes(MultiTasksOnRecipes):
         # all_reactions: (batch_size*2, max_mats_num, mat_feature_len)
         all_reactions_featurized = keras.layers.concatenate(
             [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
+                inputs["reaction_1_featurized"],
+                inputs["reaction_2_featurized"],
             ],
             axis=0,
         )
@@ -141,8 +125,8 @@ class ExpMultiTasksOnRecipes(MultiTasksOnRecipes):
         # all_pairs: (batch_size, 2, max_mats_num, mat_feature_len)
         all_reaction_pairs_featurizec = tf.stack(
             [
-                inputs['reaction_1_featurized'],
-                inputs['reaction_2_featurized'],
+                inputs["reaction_1_featurized"],
+                inputs["reaction_2_featurized"],
             ],
             axis=1,
         )
@@ -150,10 +134,10 @@ class ExpMultiTasksOnRecipes(MultiTasksOnRecipes):
         # all_pairs: (batch_size, 2*mat_feature_len+2)
         all_target_T_pairs_featurized = tf.concat(
             [
-                inputs['reaction_1_featurized'][:,0,:],
-                inputs['reaction_2_featurized'][:,0,:],
-                tf.reshape(inputs['temperature_1'],(-1,1)),
-                tf.reshape(inputs['temperature_2'],(-1,1)),
+                inputs["reaction_1_featurized"][:, 0, :],
+                inputs["reaction_2_featurized"][:, 0, :],
+                tf.reshape(inputs["temperature_1"], (-1, 1)),
+                tf.reshape(inputs["temperature_2"], (-1, 1)),
             ],
             axis=1,
         )

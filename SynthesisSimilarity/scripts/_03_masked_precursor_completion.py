@@ -65,7 +65,7 @@ def decode_target_w_conditional_precursors(
 
     assert len(target_formulas) == len(precursor_formulas_conditional)
 
-    predict_precursor_callback = callbacks.PredictPrecursorsCallback_2(
+    predict_precursor_callback = callbacks.PredictPrecursorsCallback(
         all_elements=all_elements,
         mat_feature_len=mat_feature_len,
         test_data=None,
