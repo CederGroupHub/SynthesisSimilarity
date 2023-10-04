@@ -1,3 +1,7 @@
+"""
+    Benchmark the time efficiency for batched and non-batched similarity calculation.
+"""
+
 import os
 import sys
 

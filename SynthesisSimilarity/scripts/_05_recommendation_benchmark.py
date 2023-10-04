@@ -1,5 +1,6 @@
 """
-    Recommend precurcurs for given target materials.
+    Benchmark the performance of PrecursorSelector and baseline models.
+    It takes a long time (~2h) to run everything since parallelization is not optimized here.
 """
 
 import os
@@ -18,8 +19,9 @@ if parent_folder not in sys.path:
 
 
 import numpy as np
+import pkgutil
 from pprint import pprint
-import gensim
+
 import json
 import itertools
 
@@ -71,11 +73,8 @@ def evaluation_prediction_precursors(
         pres_true_set = set(test_targets[x]["pres"].keys())
 
         all_results.append([])
-        # print("material: ", x)
         for i, pres in enumerate(pres_predict):
-            # print(i, x, test_targets[x]["pres"], pres, pres in pres_true_set)
             all_results[-1].append(len(set(pres_predict[: i + 1]) & pres_true_set) > 0)
-        # print()
 
         pres_predict_result.append(len(set(pres_predict[:1]) & pres_true_set) > 0)
         pres_predict_result_top2.append(len(set(pres_predict[:2]) & pres_true_set) > 0)
@@ -190,86 +189,6 @@ def run_recommendations():
     )
 
     ########################
-    # recommendation through raw composition
-    all_pres_predict = recommend_w_RawComp(
-        precursors_recommendator=precursors_recommendator,
-        test_targets_formulas=val_targets_formulas,
-        top_n=10,
-    )
-
-    evaluation_prediction_precursors(
-        val_targets,
-        val_targets_formulas,
-        all_pres_predict,
-    )
-
-    all_pres_predict = recommend_w_RawComp(
-        precursors_recommendator=precursors_recommendator,
-        test_targets_formulas=test_targets_formulas,
-        top_n=10,
-    )
-
-    evaluation_prediction_precursors(
-        test_targets,
-        test_targets_formulas,
-        all_pres_predict,
-    )
-
-    ########################
-    # recommendation through similarity based on matminer representation
-    all_pres_predict = recommend_w_MatMiner(
-        precursors_recommendator=precursors_recommendator,
-        test_targets_formulas=val_targets_formulas,
-        top_n=10,
-    )
-
-    evaluation_prediction_precursors(
-        val_targets,
-        val_targets_formulas,
-        all_pres_predict,
-    )
-
-    all_pres_predict = recommend_w_MatMiner(
-        precursors_recommendator=precursors_recommendator,
-        test_targets_formulas=test_targets_formulas,
-        top_n=10,
-    )
-
-    evaluation_prediction_precursors(
-        test_targets,
-        test_targets_formulas,
-        all_pres_predict,
-    )
-
-    ########################
-    # recommendation through similarity based on fasttext representation
-    all_pres_predict, fasttext_supported_val_targets_formulas = recommend_w_FastText(
-        precursors_recommendator=precursors_recommendator,
-        test_targets_formulas=val_targets_formulas,
-        test_targets=val_targets,
-        top_n=10,
-    )
-
-    evaluation_prediction_precursors(
-        val_targets,
-        fasttext_supported_val_targets_formulas,
-        all_pres_predict,
-    )
-
-    all_pres_predict, fasttext_supported_test_targets_formulas = recommend_w_FastText(
-        precursors_recommendator=precursors_recommendator,
-        test_targets_formulas=test_targets_formulas,
-        test_targets=test_targets,
-        top_n=10,
-    )
-
-    evaluation_prediction_precursors(
-        test_targets,
-        fasttext_supported_test_targets_formulas,
-        all_pres_predict,
-    )
-
-    ########################
     # recommendation through product of precursor frequencies
     all_pres_predict = recommend_w_freq(
         precursors_recommendator=precursors_recommendator,
@@ -294,6 +213,92 @@ def run_recommendations():
         test_targets_formulas,
         all_pres_predict,
     )
+
+    # To run the following baseline models, you need to install extra packages via
+    # pip install matminer scikit-learn==1.0.2 gensim==3.8.3
+
+    # ########################
+    # # recommendation through similarity based on matminer representation
+    # all_pres_predict = recommend_w_MatMiner(
+    #     precursors_recommendator=precursors_recommendator,
+    #     test_targets_formulas=val_targets_formulas,
+    #     top_n=10,
+    # )
+    #
+    # evaluation_prediction_precursors(
+    #     val_targets,
+    #     val_targets_formulas,
+    #     all_pres_predict,
+    # )
+    #
+    # all_pres_predict = recommend_w_MatMiner(
+    #     precursors_recommendator=precursors_recommendator,
+    #     test_targets_formulas=test_targets_formulas,
+    #     top_n=10,
+    # )
+    #
+    # evaluation_prediction_precursors(
+    #     test_targets,
+    #     test_targets_formulas,
+    #     all_pres_predict,
+    # )
+
+    # ########################
+    # # recommendation through similarity based on fasttext representation
+    # (all_pres_predict, fasttext_supported_val_targets_formulas,) = recommend_w_FastText(
+    #     precursors_recommendator=precursors_recommendator,
+    #     test_targets_formulas=val_targets_formulas,
+    #     test_targets=val_targets,
+    #     top_n=10,
+    # )
+    #
+    # evaluation_prediction_precursors(
+    #     val_targets,
+    #     fasttext_supported_val_targets_formulas,
+    #     all_pres_predict,
+    # )
+    #
+    # (
+    #     all_pres_predict,
+    #     fasttext_supported_test_targets_formulas,
+    # ) = recommend_w_FastText(
+    #     precursors_recommendator=precursors_recommendator,
+    #     test_targets_formulas=test_targets_formulas,
+    #     test_targets=test_targets,
+    #     top_n=10,
+    # )
+    #
+    # evaluation_prediction_precursors(
+    #     test_targets,
+    #     fasttext_supported_test_targets_formulas,
+    #     all_pres_predict,
+    # )
+
+    # ########################
+    # # recommendation through raw composition
+    # all_pres_predict = recommend_w_RawComp(
+    #     precursors_recommendator=precursors_recommendator,
+    #     test_targets_formulas=val_targets_formulas,
+    #     top_n=10,
+    # )
+    #
+    # evaluation_prediction_precursors(
+    #     val_targets,
+    #     val_targets_formulas,
+    #     all_pres_predict,
+    # )
+    #
+    # all_pres_predict = recommend_w_RawComp(
+    #     precursors_recommendator=precursors_recommendator,
+    #     test_targets_formulas=test_targets_formulas,
+    #     top_n=10,
+    # )
+    #
+    # evaluation_prediction_precursors(
+    #     test_targets,
+    #     test_targets_formulas,
+    #     all_pres_predict,
+    # )
 
 
 def recommend_w_SynSym(
@@ -421,6 +426,15 @@ def recommend_w_FastText(
     test_targets,
     top_n=10,
 ):
+
+    if pkgutil.find_loader("gensim"):
+        import gensim
+    else:
+        print(
+            "FastText encoding needs the package gensim==3.8.3. "
+            "You may want to install it with 'pip install gensim==3.8.3'."
+        )
+
     fasttext = gensim.models.keyedvectors.KeyedVectors.load(
         "../other_rsc/fasttext_pretrained_matsci/fasttext_embeddings-MINIFIED.model"
     )
@@ -639,5 +653,5 @@ def recommend_w_freq(
 
 
 if __name__ == "__main__":
-    use_file_as_stdout("../generated/output.txt")
+    # use_file_as_stdout("../generated/output.txt")
     run_recommendations()

@@ -27,7 +27,9 @@ def elements_to_binary_composition(ele_in_mat, all_eles):
 
 
 def get_binary_composition_of_material_in_raw_reactions(
-    composition, element_substitution, all_eles,
+    composition,
+    element_substitution,
+    all_eles,
 ):
     ele_in_mat = get_elements_of_material_in_raw_reactions(
         composition, element_substitution
@@ -114,7 +116,10 @@ def collect_targets_in_raw_reactions(
     return train_targets, train_targets_formulas, ref_precursors_comp
 
 
-def save_ele_order(raw_reactions, save_path="generated/ele_order_counter.json",):
+def save_ele_order(
+    raw_reactions,
+    save_path="generated/ele_order_counter.json",
+):
     ele_order_counter = collections.Counter()
 
     for r in raw_reactions:

@@ -11,6 +11,12 @@ import pkgutil
 
 if pkgutil.find_loader("matminer"):
     from matminer.featurizers.composition import ElementProperty
+else:
+    print(
+        "Magpie encoding needs the package matminer and scikit-learn==1.0.2. "
+        "You may want to install them with 'pip install matminer scikit-learn==1.0.2'."
+    )
+
 
 from pymatgen.core import Composition
 import os

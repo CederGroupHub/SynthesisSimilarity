@@ -9,4 +9,5 @@ tensorflow==2.7.0
 protobuf==3.19.6
 regex
 timebudget
+scikit-learn
 
