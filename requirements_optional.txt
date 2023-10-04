@@ -1,0 +1,10 @@
+# These packages are not necessary if only using PrecursorSelector for precursor recommendation.
+# matminer
+# scikit-learn==1.0.2
+# maybe gensim==3.8.3 is required for the FastText model
+# unidecode
+# Synthepedia
+# ValenceSolver
+# synthesis_dataset
+# ReactionCompleter
+

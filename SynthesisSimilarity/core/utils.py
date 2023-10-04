@@ -16,8 +16,10 @@ from matplotlib.colors import ListedColormap
 from pymatgen.core import Composition
 from pprint import pprint
 from typing import List, Tuple, Union
+import pkgutil
 
-from ValenceSolver.core.composition_inhouse import CompositionInHouse
+if pkgutil.find_loader('ValenceSolver'):
+    from ValenceSolver.core.composition_inhouse import CompositionInHouse
 
 
 __author__ = "Tanjin He"

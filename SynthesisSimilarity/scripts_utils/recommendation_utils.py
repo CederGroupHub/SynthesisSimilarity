@@ -1,18 +1,8 @@
-import json
 import collections
-import numpy as np
-from pprint import pprint
-import os
-import warnings
-import gensim
-import random
-from datetime import datetime
-import itertools
 import bisect
 
 from SynthesisSimilarity.core import utils
 
-import pdb
 
 __author__ = "Tanjin He"
 __maintainer__ = "Tanjin He"

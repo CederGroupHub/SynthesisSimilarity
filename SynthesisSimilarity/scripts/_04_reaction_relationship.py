@@ -1,7 +1,17 @@
+"""
+    Explore the relationship of Tar_1 - Pre_1 vs Tar_2 - Pre_2,
+    similar to king - man ~ queen - woman from word2vec.
+"""
+
 import os
 import sys
 
-parent_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+parent_folder = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../..",
+    )
+)
 print("parent_folder", parent_folder)
 if parent_folder not in sys.path:
     sys.path.append(parent_folder)
@@ -301,8 +311,12 @@ def plot_relation_shift(
     ax.set_aspect("equal", adjustable="box")
 
     plt.tight_layout()
-    plt.savefig("../generated/plots/relationship_shift.png", dpi=300)
-    plt.show()
+    path_save = "../generated/plots/relationship_shift.png"
+    if not os.path.exists(os.path.dirname(path_save)):
+        os.makedirs(os.path.dirname(path_save))
+    plt.savefig(path_save, dpi=300)
+    print("Figure saved to {}".format(os.path.dirname(path_save)))
+    # plt.show()
 
 
 if __name__ == "__main__":

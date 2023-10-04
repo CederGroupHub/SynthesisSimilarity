@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 from pprint import pprint
 import os
+import pkgutil
 from typing import (
     Union,
     List,
@@ -15,6 +16,8 @@ from pymatgen.core import Composition, Element
 
 # TODO: add reaction completer later
 # import reaction_completer
+if pkgutil.find_loader('reaction_completer'):
+    import reaction_completer
 
 from SynthesisSimilarity.core import model_utils
 from SynthesisSimilarity.core import callbacks
@@ -34,8 +37,6 @@ from SynthesisSimilarity.core.mat_featurization import featurize_list_of_composi
 from SynthesisSimilarity.scripts_utils.recommendation_utils import (
     collect_targets_in_reactions,
 )
-
-import reaction_completer
 
 import pdb
 

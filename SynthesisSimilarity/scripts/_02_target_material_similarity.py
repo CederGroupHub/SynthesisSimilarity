@@ -1,6 +1,19 @@
 """
-    Calculate similarity between two target materials using synthesis encoding.
+    Calculate similarity between two target materials using the PrecursorSelector encoding.
 """
+
+import os
+import sys
+
+parent_folder = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../..",
+    )
+)
+print("parent_folder", parent_folder)
+if parent_folder not in sys.path:
+    sys.path.append(parent_folder)
 
 from SynthesisSimilarity.scripts_utils.TarMatSimilarity_utils import TarMatSimilarity
 

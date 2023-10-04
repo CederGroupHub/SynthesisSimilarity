@@ -7,7 +7,11 @@ Created on Fri Sep 27 18:07:28 2019
 """
 import pdb
 
-from matminer.featurizers.composition import ElementProperty
+import pkgutil
+
+if pkgutil.find_loader("matminer"):
+    from matminer.featurizers.composition import ElementProperty
+
 from pymatgen.core import Composition
 import os
 import numpy as np
@@ -194,4 +198,3 @@ def MatMiner_features_for_formulas(
             obj.feature_vector_normalized(x),
         )
     return all_features
-

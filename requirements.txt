@@ -1,18 +1,12 @@
-Synthepedia
-ValenceSolver
-synthesis_dataset
-ReactionCompleter
-unidecode
 pymatgen
 adjustText
 colorcet
 psutil
 seaborn
 jsonlines
-gensim
 matplotlib
-tensorflow
+tensorflow==2.7.0
+protobuf==3.19.6
 regex
-matminer
+timebudget
 
-# maybe gensim==3.8.3 is required for the FastText model

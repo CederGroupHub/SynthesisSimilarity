@@ -4,6 +4,7 @@ import datetime
 import os
 import itertools
 import json
+import pkgutil
 import pdb
 import random
 import time
@@ -14,19 +15,22 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import re
-from unidecode import unidecode
 import collections
 from sympy.parsing.sympy_parser import parse_expr
 from copy import deepcopy
 from pymatgen.core import Composition
 from pymatgen.core import Element
 
-from Synthepedia.concepts.materials.complex import GeneralComposition
-from synthesis_dataset.hierarchy import (
-    find_base_material,
-    make_hierarchy,
-    flatten_hierarchy,
-)
+if pkgutil.find_loader('unidecode'):
+    from unidecode import unidecode
+if pkgutil.find_loader('Synthepedia'):
+    from Synthepedia.concepts.materials.complex import GeneralComposition
+if pkgutil.find_loader('synthesis_dataset'):
+    from synthesis_dataset.hierarchy import (
+        find_base_material,
+        make_hierarchy,
+        flatten_hierarchy,
+    )
 
 from SynthesisSimilarity.core import utils
 
