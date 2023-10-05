@@ -6,6 +6,7 @@
 import os
 import pdb
 import sys
+import warnings
 
 parent_folder = os.path.abspath(
     os.path.join(
@@ -216,6 +217,8 @@ def run_recommendations():
 
     # To run the following baseline models, you need to install extra packages via
     # pip install matminer scikit-learn==1.0.2 gensim==3.8.3
+    # You also need to download the model and data for Magpie and FastText encodings via
+    # download_optional_data() in scripts/_00_download_model_and_data.py
 
     # ########################
     # # recommendation through similarity based on matminer representation
@@ -430,14 +433,22 @@ def recommend_w_FastText(
     if pkgutil.find_loader("gensim"):
         import gensim
     else:
-        print(
+        warnings.warn(
             "FastText encoding needs the package gensim==3.8.3. "
             "You may want to install it with 'pip install gensim==3.8.3'."
         )
 
-    fasttext = gensim.models.keyedvectors.KeyedVectors.load(
+    path_model_fasttext = (
         "../other_rsc/fasttext_pretrained_matsci/fasttext_embeddings-MINIFIED.model"
     )
+
+    if not os.path.exists(path_model_fasttext):
+        warnings.warn(
+            "You may want to download model and data for FastText encoding via "
+            "download_optional_data() in scripts/_00_download_model_and_data.py. "
+        )
+
+    fasttext = gensim.models.keyedvectors.KeyedVectors.load(path_model_fasttext)
     # Need to set this when loading from saved file
     fasttext.bucket = 2000000
 

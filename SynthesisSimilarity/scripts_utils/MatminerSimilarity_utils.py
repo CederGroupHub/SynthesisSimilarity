@@ -11,15 +11,10 @@ import pkgutil
 
 if pkgutil.find_loader("matminer"):
     from matminer.featurizers.composition import ElementProperty
-else:
-    print(
-        "Magpie encoding needs the package matminer and scikit-learn==1.0.2. "
-        "You may want to install them with 'pip install matminer scikit-learn==1.0.2'."
-    )
-
 
 from pymatgen.core import Composition
 import os
+import warnings
 import numpy as np
 import json
 import multiprocessing as mp
@@ -194,6 +189,18 @@ def MatMiner_features_for_formulas(
     path_to_imputer,
     path_to_scaler,
 ):
+    if not pkgutil.find_loader("matminer"):
+        warnings.warn(
+            "Magpie encoding needs the package matminer and scikit-learn==1.0.2. "
+            "You may want to install them with 'pip install matminer scikit-learn==1.0.2'. "
+        )
+
+    if not os.path.exists(path_to_imputer):
+        warnings.warn(
+            "You may want to download model and data for Magpie encoding via "
+            "download_optional_data() in scripts/_00_download_model_and_data.py. "
+        )
+
     all_features = []
     obj = MatminerSimilarity(
         path_to_imputer=path_to_imputer,
