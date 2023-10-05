@@ -13,12 +13,14 @@ When the precursors from the reference material do not cover all the elements in
 As a brief summary, the useful scripts reproducing the main results in this work are in the folder "scripts".
 Other auxiliary codes are in the folders "core" and "scripts_utils".
 The trained model is in the folder "models".
-Data are in the folders "rsc" and "other_rsc".
+You may want to download the data using _00_download_model_and_data in the folder "scripts" first.
+The downloaded data will be saved in the folders "rsc" and "other_rsc".
 More details are displayed as follows.
 
     SynthesisSimilarity         
     ├── README.md  # A simple introduction of the repo        
     ├── requirements.txt  # Python packages required for this repo          
+    ├── requirements_optional.txt  # Optional packages not needed for basic use
     └── SynthesisSimilarity  # The main directory   
         ├── core  #  The directory of the core modules and framework for the PrecursorSelector model in this work  
         │   ├── activations  # Activation functions (from https://github.com/tensorflow/models)  
@@ -76,6 +78,7 @@ More details are displayed as follows.
         │   ├── pre_count_normalized_by_rxn_ss.json  # Statistics of the frequency to use each precursor in the literature-mined synthesis reactions
         │   └── reactions_v20_20210820_ss.jsonl  # The text-mined solid-state synthesis dataset from materials science papers   
         ├── scripts  # The directory of useful scripts reproducing the main results in this work 
+        │   ├── _00_download_model_and_data.py  # Download data from google drive for the PrecursorSelector model
         │   ├── _01_synthesis_recommendation.py  # Precursor recommendation for the given composition of a target material   
         │   ├── _02_target_material_similarity.py  # Similarity evaluation for two target materials based on the PrecursorSelector encoding  
         │   ├── _03_masked_precursor_completion.py  # Prediction of the complete precursors given the target material and partial precursors   
