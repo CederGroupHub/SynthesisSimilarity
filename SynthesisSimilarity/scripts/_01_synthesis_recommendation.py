@@ -32,6 +32,7 @@ def run_recommendations():
         model_dir="../models/SynthesisRecommendation",
         freq_path="../rsc/pre_count_normalized_by_rxn_ss.json",
         data_path="../rsc/data_split.npz",
+        all_to_knowledge_base=False,
     )
 
     test_targets_formulas = [
@@ -45,17 +46,13 @@ def run_recommendations():
     print("len(test_targets_formulas)", len(test_targets_formulas))
     print("test_targets_formulas", test_targets_formulas)
 
-    all_pres_predict = precursors_recommendator.recommend_precursors(
+    all_predicts = precursors_recommendator.recommend_precursors(
         target_formula=test_targets_formulas,
         top_n=10,
     )
 
     for i in range(len(test_targets_formulas)):
-        print(
-            "target: ",
-            test_targets_formulas[i],
-        )
-        pprint(all_pres_predict[i])
+        pprint(all_predicts[i])
         print()
 
 

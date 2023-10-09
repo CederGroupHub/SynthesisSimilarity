@@ -144,6 +144,7 @@ def run_recommendations():
         model_dir="../models/SynthesisRecommendation",
         freq_path="../rsc/pre_count_normalized_by_rxn_ss.json",
         data_path="../rsc/data_split.npz",
+        all_to_knowledge_base=False,
     )
 
     data_path = "../rsc/data_split.npz"
@@ -309,12 +310,14 @@ def recommend_w_SynSym(
     test_targets_formulas,
     top_n=10,
 ):
-    all_pres_predict = precursors_recommendator.recommend_precursors(
+    all_predicts = precursors_recommendator.recommend_precursors(
         target_formula=test_targets_formulas,
         top_n=top_n,
         validate_first_attempt=False,
         recommendation_strategy="SynSim_conditional",
     )
+
+    all_pres_predict = [x['precursors_predicts'] for x in all_predicts]
 
     return all_pres_predict
 
@@ -351,13 +354,15 @@ def recommend_w_RawComp(
     )
     all_distance = test_targets_vecs @ train_targets_vecs.T
 
-    all_pres_predict, _ = precursors_recommendator.recommend_precursors_by_similarity(
+    all_pres_predict, all_resutls = precursors_recommendator.recommend_precursors_by_similarity(
         test_targets_formulas=test_targets_formulas,
         train_targets_recipes=precursors_recommendator.train_targets_recipes,
         all_distance=all_distance,
         top_n=top_n,
         strategy="naive_common",
     )
+
+    all_pres_predict = [x['precursors_predicts'] for x in all_resutls]
 
     return all_pres_predict
 
@@ -412,13 +417,15 @@ def recommend_w_MatMiner(
     )
     all_distance = test_targets_vecs @ train_targets_vecs.T
 
-    all_pres_predict, _ = precursors_recommendator.recommend_precursors_by_similarity(
+    all_pres_predict, all_results = precursors_recommendator.recommend_precursors_by_similarity(
         test_targets_formulas=test_targets_formulas,
         train_targets_recipes=precursors_recommendator.train_targets_recipes,
         all_distance=all_distance,
         top_n=top_n,
         strategy="naive_common",
     )
+
+    all_pres_predict = [x['precursors_predicts'] for x in all_results]
 
     return all_pres_predict
 
@@ -536,13 +543,15 @@ def recommend_w_FastText(
         precursors_recommendator.train_targets[x] for x in train_targets_formulas
     ]
 
-    all_pres_predict, _ = precursors_recommendator.recommend_precursors_by_similarity(
+    all_pres_predict, all_results = precursors_recommendator.recommend_precursors_by_similarity(
         test_targets_formulas=test_targets_formulas,
         train_targets_recipes=train_targets_recipes,
         all_distance=all_distance,
         top_n=top_n,
         strategy="naive_common",
     )
+
+    all_pres_predict = [x['precursors_predicts'] for x in all_results]
 
     return all_pres_predict, test_targets_formulas
 

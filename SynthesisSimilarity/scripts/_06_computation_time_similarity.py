@@ -34,6 +34,7 @@ def similarity_time():
             model_dir="../models/SynthesisRecommendation",
             freq_path="../rsc/pre_count_normalized_by_rxn_ss.json",
             data_path="../rsc/data_split.npz",
+            all_to_knowledge_base=False,
         )
 
         data_path = "../rsc/data_split.npz"

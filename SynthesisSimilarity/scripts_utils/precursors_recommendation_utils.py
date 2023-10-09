@@ -53,15 +53,43 @@ all_extended_metal_eles = set(
 class PrecursorsRecommendation(object):
     def __init__(
         self,
-        model_dir: str,
-        freq_path: str,
-        data_path: str,
-        all_to_knowledge_base: str = False,
+        model_dir: Optional[str]=None,
+        freq_path: Optional[str]=None,
+        data_path: Optional[str]=None,
+        all_to_knowledge_base: bool = True,
     ):
         super().__init__()
-        self.model_dir = model_dir
-        self.freq_path = freq_path
-        self.data_path = data_path
+
+        parent_folder = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+            )
+        )
+        if model_dir is not None:
+            self.model_dir = model_dir
+        else:
+            self.model_dir = os.path.join(
+                parent_folder,
+                'models/SynthesisRecommendation',
+            )
+
+        if freq_path is not None:
+            self.freq_path = freq_path
+        else:
+            self.freq_path = os.path.join(
+                parent_folder,
+                'rsc/pre_count_normalized_by_rxn_ss.json',
+            )
+
+        if data_path is not None:
+            self.data_path = data_path
+        else:
+            self.data_path = os.path.join(
+                parent_folder,
+                'rsc/data_split.npz',
+            )
+
         self.load_model()
         self.load_pre_freq()
         self.load_data(all_to_knowledge_base=all_to_knowledge_base)
@@ -196,7 +224,8 @@ class PrecursorsRecommendation(object):
         if recommendation_strategy == "SynSim_conditional":
             (
                 all_pres_predict,
-                all_rxns_predict,
+                # all_rxns_predict,
+                all_predicts,
             ) = self.recommend_precursors_by_similarity(
                 test_targets_formulas=test_targets_formulas,
                 test_targets_compositions=test_targets_compositions,
@@ -212,7 +241,8 @@ class PrecursorsRecommendation(object):
         elif recommendation_strategy == "SynSim_naive":
             (
                 all_pres_predict,
-                all_rxns_predict,
+                # all_rxns_predict,
+                all_predicts,
             ) = self.recommend_precursors_by_similarity(
                 test_targets_formulas=test_targets_formulas,
                 test_targets_compositions=test_targets_compositions,
@@ -229,7 +259,8 @@ class PrecursorsRecommendation(object):
 
         # TODO: better to output as a dict {'target', 'precursors', ...}
 
-        return all_pres_predict
+        # return all_pres_predict
+        return all_predicts
 
     def recommend_precursors_by_similarity(
         self,
@@ -257,6 +288,7 @@ class PrecursorsRecommendation(object):
         if precursors_not_available is None:
             precursors_not_available = set()
 
+        all_predicts = []
         # # logs
         # all_logs = []
         # dir_all_logs = os.path.join(
@@ -278,6 +310,13 @@ class PrecursorsRecommendation(object):
                     "x_index: {} out of {}".format(x_index, len(test_targets_formulas))
                 )
             most_similar_y_index = np.argsort(all_distance[x_index, :])[::-1]
+
+            all_predicts.append(
+                {
+                    'target_formula': x,
+                    'precursors_predicts': [],
+                }
+            )
 
             # all_logs.append(
             #     {
@@ -337,6 +376,7 @@ class PrecursorsRecommendation(object):
                 )
                 if pres_predict is not None:
                     pres_multi_predicts.append(pres_predict)
+                    all_predicts[-1]['precursors_predicts'].append(pres_predict)
                     # all_logs[-1]['precursors_predicts'].append(
                     #     {
                     #         'i_pres_candidates': None,
@@ -432,6 +472,7 @@ class PrecursorsRecommendation(object):
                     # is_recommended = True
                     continue
                 pres_multi_predicts.append(pres_predict)
+                all_predicts[-1]['precursors_predicts'].append(pres_predict)
                 # all_logs[-1]['precursors_predicts'].append(
                 #     {
                 #         'i_pres_candidates': i,
@@ -458,7 +499,8 @@ class PrecursorsRecommendation(object):
         # ) as fw:
         #     json.dump(all_logs, fw, indent=2)
 
-        return all_pres_predict, all_rxns_predict
+        # return all_pres_predict, all_rxns_predict
+        return all_pres_predict, all_predicts
 
     def complete_precursors_conditional(
         self,
