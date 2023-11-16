@@ -26,6 +26,7 @@ def run_recommendations():
     all_predicts = precursors_recommendator.recommend_precursors(
         target_formula=test_targets_formulas,
         top_n=10,
+        validate_reaction=True,
     )
 
     for i in range(len(test_targets_formulas)):

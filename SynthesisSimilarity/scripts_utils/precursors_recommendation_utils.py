@@ -16,7 +16,7 @@ from pymatgen.core import Composition, Element
 
 # TODO: add reaction completer later
 # import reaction_completer
-if pkgutil.find_loader('reaction_completer'):
+if pkgutil.find_loader("reaction_completer"):
     import reaction_completer
 
 from SynthesisSimilarity.core import model_utils
@@ -37,8 +37,19 @@ from SynthesisSimilarity.core.mat_featurization import featurize_list_of_composi
 from SynthesisSimilarity.scripts_utils.recommendation_utils import (
     collect_targets_in_reactions,
 )
+from SynthesisSimilarity.scripts_utils.reaction_utils import (
+    balance_w_rxn_network,
+    are_coefficients_positive,
+    clear_zero_coeff_precursors,
+    reaction_coeff_to_float,
+)
 
 import pdb
+
+
+__author__ = "Tanjin He"
+__maintainer__ = "Tanjin He"
+__email__ = "tanjin_he@berkeley.edu"
 
 
 all_eles = set(Element.__members__.keys())
@@ -53,10 +64,12 @@ all_extended_metal_eles = set(
 class PrecursorsRecommendation(object):
     def __init__(
         self,
-        model_dir: Optional[str]=None,
-        freq_path: Optional[str]=None,
-        data_path: Optional[str]=None,
+        model_dir: Optional[str] = None,
+        freq_path: Optional[str] = None,
+        data_path: Optional[str] = None,
         all_to_knowledge_base: bool = True,
+        path_pres_ref: Optional[str] = None,
+        path_pres_unavail: Optional[str] = None,
     ):
         super().__init__()
 
@@ -71,7 +84,7 @@ class PrecursorsRecommendation(object):
         else:
             self.model_dir = os.path.join(
                 parent_folder,
-                'models/SynthesisRecommendation',
+                "models/SynthesisRecommendation",
             )
 
         if freq_path is not None:
@@ -79,7 +92,7 @@ class PrecursorsRecommendation(object):
         else:
             self.freq_path = os.path.join(
                 parent_folder,
-                'rsc/pre_count_normalized_by_rxn_ss.json',
+                "rsc/pre_count_normalized_by_rxn_ss.json",
             )
 
         if data_path is not None:
@@ -87,12 +100,30 @@ class PrecursorsRecommendation(object):
         else:
             self.data_path = os.path.join(
                 parent_folder,
-                'rsc/data_split.npz',
+                "rsc/data_split.npz",
+            )
+
+        if path_pres_ref is not None:
+            self.path_pres_ref = path_pres_ref
+        else:
+            self.path_pres_ref = os.path.join(
+                parent_folder,
+                "rsc/pres_name_ref.json",
+            )
+
+        if path_pres_unavail is not None:
+            self.path_pres_unavail = path_pres_unavail
+        else:
+            self.path_pres_unavail = os.path.join(
+                parent_folder,
+                "rsc/pres_unavail.json",
             )
 
         self.load_model()
         self.load_pre_freq()
         self.load_data(all_to_knowledge_base=all_to_knowledge_base)
+        self.load_precursors_ref()
+        self.load_precursors_not_avail()
 
     def load_model(self):
         # # Important to allow_gpu_growth for multiple processors
@@ -118,7 +149,7 @@ class PrecursorsRecommendation(object):
     def load_data(
         self,
         uncommon_reactions_only: bool = False,
-        all_to_knowledge_base: str = False,
+        all_to_knowledge_base: bool = False,
     ):
         local_data = np.load(self.data_path, allow_pickle=True)
         print("local_data.keys()", list(local_data.keys()))
@@ -176,20 +207,41 @@ class PrecursorsRecommendation(object):
             ]
         )
 
+    def load_precursors_ref(self):
+        with open(self.path_pres_ref, "r") as fr:
+            pres_ref = json.load(fr)
+
+        self.ref_precursors_comp = {
+            mat: self._material_as_dataset_format(mat_ref)
+            for (mat, mat_ref) in pres_ref.items()
+        }
+
+    def load_precursors_not_avail(self):
+        with open(self.path_pres_unavail, "r") as fr:
+            pres_unavail = json.load(fr)
+        self.pre_set_unavail_default = set(pres_unavail)
+
     def recommend_precursors(
         self,
         target_formula: Union[str, List[str]],
         top_n: int = 1,
         validate_first_attempt: bool = True,
         # TODO: add this to reaction_utils
-        # validate_reaction: bool = True,
+        validate_reaction: bool = False,
         recommendation_strategy="SynSim_conditional",
-        precursors_not_available: Optional[set] = None,
+        precursors_not_available: Optional[Union[str, set]] = "default",
     ):
         if isinstance(target_formula, str):
             test_targets_formulas = [target_formula]
         else:
             test_targets_formulas = target_formula
+
+        if precursors_not_available is None:
+            precursors_not_available = set()
+        elif precursors_not_available == "default":
+            precursors_not_available = self.pre_set_unavail_default
+        elif isinstance(precursors_not_available, str):
+            raise NotImplementedError
 
         # get target_candidate_normal_vecs
         # TODO: should this test_targets_compositions be ndarray?
@@ -257,7 +309,12 @@ class PrecursorsRecommendation(object):
         else:
             raise NotImplementedError
 
-        # TODO: better to output as a dict {'target', 'precursors', ...}
+        if validate_reaction:
+            # TODO: need to unify the output format when validate_reaction=False
+            all_predicts = self._filter_by_reaction(
+                all_predicts=all_predicts,
+                precursors_not_available=precursors_not_available,
+            )
 
         # return all_pres_predict
         return all_predicts
@@ -313,8 +370,8 @@ class PrecursorsRecommendation(object):
 
             all_predicts.append(
                 {
-                    'target_formula': x,
-                    'precursors_predicts': [],
+                    "target_formula": x,
+                    "precursors_predicts": [],
                 }
             )
 
@@ -376,7 +433,7 @@ class PrecursorsRecommendation(object):
                 )
                 if pres_predict is not None:
                     pres_multi_predicts.append(pres_predict)
-                    all_predicts[-1]['precursors_predicts'].append(pres_predict)
+                    all_predicts[-1]["precursors_predicts"].append(pres_predict)
                     # all_logs[-1]['precursors_predicts'].append(
                     #     {
                     #         'i_pres_candidates': None,
@@ -472,7 +529,7 @@ class PrecursorsRecommendation(object):
                     # is_recommended = True
                     continue
                 pres_multi_predicts.append(pres_predict)
-                all_predicts[-1]['precursors_predicts'].append(pres_predict)
+                all_predicts[-1]["precursors_predicts"].append(pres_predict)
                 # all_logs[-1]['precursors_predicts'].append(
                 #     {
                 #         'i_pres_candidates': i,
@@ -776,6 +833,118 @@ class PrecursorsRecommendation(object):
             ],
         }
         return mat_comp
+
+    @staticmethod
+    def _precursors_to_ref_formulas(precursors, ref_materials_comp):
+        ref_formulas = []
+        for pre in precursors:
+            if pre in ref_materials_comp:
+                ref_formulas.append(ref_materials_comp[pre]["material_formula"])
+            else:
+                ref_formulas.append(pre)
+        return ref_formulas
+
+    @staticmethod
+    def _filter_out_organic_precursors(precursors):
+        pres_out = []
+        for pre in precursors:
+            if set(get_elements_in_formula(pre)).issubset({"C", "H", "O"}):
+                continue
+            pres_out.append(pre)
+        return pres_out
+
+    @staticmethod
+    def _are_precursors_available(
+        precursors,
+        pre_set_not_avail,
+        ref_materials_comp,
+    ):
+        pre_set = set(precursors)
+        for pre in precursors:
+            if pre in ref_materials_comp:
+                pre_set.add(ref_materials_comp[pre]["material_formula"])
+        if len(pre_set & pre_set_not_avail) > 0:
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def _use_available_precursors(
+        precursors,
+        pre_set_not_avail,
+        ref_materials_comp,
+    ):
+        pre_set = set(precursors)
+        for pre in precursors:
+            if pre in ref_materials_comp:
+                pre_set.add(ref_materials_comp[pre]["material_formula"])
+        return tuple(sorted(pre_set - pre_set_not_avail))
+
+    def _filter_by_reaction(
+        self,
+        all_predicts: List[dict],
+        precursors_not_available: Optional[set] = None,
+    ):
+        if precursors_not_available is None:
+            precursors_not_available = set()
+
+        all_rxns_predict = []
+        all_pres_predict_filtered = []
+        for i, pred in enumerate(all_predicts):
+            tar = pred["target_formula"]
+            all_rxns_predict.append([])
+            all_pres_predict_filtered.append([])
+            pres_added = set()
+            for pres in pred["precursors_predicts"]:
+                pres = self._filter_out_organic_precursors(pres)
+                pres = self._precursors_to_ref_formulas(
+                    precursors=pres,
+                    ref_materials_comp=self.ref_precursors_comp,
+                )
+                pres = self._use_available_precursors(
+                    precursors=pres,
+                    pre_set_not_avail=precursors_not_available,
+                    ref_materials_comp=self.ref_precursors_comp,
+                )
+                rxn_predict = self.get_reaction(
+                    target_formula=tar,
+                    precursors_formulas=pres,
+                    ref_materials_comp=self.ref_precursors_comp,
+                )
+                if rxn_predict is None:
+                    rxn_predict = balance_w_rxn_network(
+                        target_formula=tar,
+                        precursors_formulas=pres,
+                        ref_materials_comp=self.ref_precursors_comp,
+                    )
+                if rxn_predict is not None:
+                    if not are_coefficients_positive(
+                        target=tar, precursors=pres, reaction=rxn_predict
+                    ):
+                        rxn_predict = None
+                if rxn_predict is not None:
+                    pres = clear_zero_coeff_precursors(
+                        precursors=pres,
+                        reaction=rxn_predict,
+                    )
+
+                if rxn_predict is None:
+                    continue
+                if pres in pres_added:
+                    continue
+                rxn_predict = reaction_coeff_to_float(rxn_predict)
+                rxn_predict = {
+                    "target": rxn_predict[0],
+                    "precursors": pres,
+                    "left": rxn_predict[1]["left"],
+                    "right": rxn_predict[1]["right"],
+                    "reaction_string": rxn_predict[3],
+                }
+                all_rxns_predict[-1].append(rxn_predict)
+                all_pres_predict_filtered[-1].append(pres)
+                pres_added.add(pres)
+
+        return all_rxns_predict
 
 
 if __name__ == "__main__":

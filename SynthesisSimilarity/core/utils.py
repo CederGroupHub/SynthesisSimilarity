@@ -18,7 +18,7 @@ from pprint import pprint
 from typing import List, Tuple, Union
 import pkgutil
 
-if pkgutil.find_loader('ValenceSolver'):
+if pkgutil.find_loader("ValenceSolver"):
     from ValenceSolver.core.composition_inhouse import CompositionInHouse
 
 
